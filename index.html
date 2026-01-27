@@ -257,7 +257,6 @@
             }
         }
 
-        /* Toast Notification */
         .toast {
             visibility: hidden;
             min-width: 250px;
@@ -305,7 +304,6 @@
             }
         }
 
-        /* End Day Overlay */
         .ended-overlay {
             display: none;
             position: absolute;
@@ -347,8 +345,15 @@
             </div>
             <p style="color: var(--text-secondary); font-size:12px; margin-top:20px;">Ready to code.</p>
         </div>
+
         <div id="view-dashboard" class="view-section active-view">
-            <div style="display:flex; gap:10px; margin-bottom:15px; justify-content: flex-end;">
+            <div style="display:flex; gap:10px; margin-bottom:15px; justify-content: flex-end; align-items: center;">
+
+                <button id="update-btn-dash" class="btn" style="font-size:12px; padding:6px 12px; display: none;"
+                    onclick="installUpdate()">
+                    <i class="fa-solid fa-circle-up"></i> Update Available
+                </button>
+
                 <button class="btn btn-outline" style="font-size:12px; padding:6px 12px;"
                     onclick="addQuickLog('Meeting', 'Scrum / Standup')"><i class="fa-solid fa-users"></i>
                     Standup</button>
@@ -374,23 +379,21 @@
                     <button id="break-btn" class="btn btn-outline" style="width:100%" onclick="toggleBreak()"><i
                             class="fa-solid fa-mug-hot"></i> Take Break</button>
                 </div>
-                <!-- Session Stats & End Day -->
                 <div class="card">
                     <div class="timer-label">Session Stats</div>
                     <div style="margin-top:10px; font-size:13px; color:var(--text-secondary); margin-bottom:15px;">
                         <div>In: <span id="punch-in-time" style="color:#fff">--:--</span></div>
                         <div style="margin-top:5px;">State: <span id="status-text"
                                 style="color: var(--success-color)">Working</span></div>
+                        <div style="display:none">Break Used: <span id="total-break-time">0m</span></div>
                     </div>
                     <button class="btn btn-danger" style="width:100%; font-size:12px;" onclick="endDay()">
                         <i class="fa-solid fa-stop-circle"></i> End Day
                     </button>
                 </div>
             </div>
-
         </div>
 
-        <!-- End Day Overlay -->
         <div id="ended-screen" class="ended-overlay">
             <h2 style="color:white; margin-bottom:10px;">Day Ended</h2>
             <p style="color:var(--text-secondary); font-size:14px; margin-bottom:30px;">
@@ -405,6 +408,7 @@
                 </button>
             </div>
         </div>
+
         <div id="view-scratchpad" class="view-section">
             <div class="header-title"><i class="fa-solid fa-pen-to-square"></i> Developer Notes</div>
             <div style="flex:1; display:flex; flex-direction:column;">
@@ -414,14 +418,25 @@
             <div style="margin-top:10px; font-size:12px; color:var(--text-secondary);">*Auto-saved to local database.
             </div>
         </div>
+
         <div id="view-logs" class="view-section">
             <div class="header-title"><i class="fa-solid fa-history"></i> Activity Log</div>
             <div id="full-log-list" class="log-list-container"></div>
         </div>
 
-        <!-- Settings View -->
         <div id="view-settings" class="view-section">
             <div class="header-title"><i class="fa-solid fa-cog"></i> Settings</div>
+
+            <div id="update-card-settings" class="card"
+                style="border-left: 4px solid var(--accent-color); display: none;">
+                <div class="timer-label">New Update Found</div>
+                <div style="margin-top:10px; display:flex; justify-content: space-between; align-items: center;">
+                    <span id="update-status-text"
+                        style="font-size:13px; color:var(--accent-color); font-weight: 600;">Download complete!</span>
+                    <button class="btn" style="font-size:11px; padding: 5px 10px;" onclick="installUpdate()">Restart &
+                        Update</button>
+                </div>
+            </div>
 
             <div class="card">
                 <div class="timer-label">About</div>
@@ -452,13 +467,13 @@
         const { ipcRenderer, clipboard } = require('electron');
         let state = { isActive: false, punchInTime: null, requiredHours: 0, breakActive: false, lastBreakStartTime: null, totalBreakTaken: 0, notes: "", isEnded: false };
         let timerInterval = null;
+
         window.onload = async () => {
             try {
                 const savedState = await ipcRenderer.invoke('get-session', 'user-state');
                 if (savedState && savedState.isActive) {
                     state = { ...savedState, punchInTime: new Date(savedState.punchInTime), lastBreakStartTime: savedState.lastBreakStartTime ? new Date(savedState.lastBreakStartTime) : null };
                     if (state.isEnded) {
-                        // If we saved while ended, show ended screen immediately
                         document.getElementById('setup-screen').style.display = 'none';
                         document.getElementById('ended-screen').classList.add('active');
                         document.getElementById('end-time-display').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -471,6 +486,7 @@
             } catch (e) { console.error(e); }
             refreshLogs();
         };
+
         function switchView(viewName) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
             document.getElementById('view-' + viewName).classList.add('active-view');
@@ -481,11 +497,13 @@
             if (viewName === 'logs') icons[2].classList.add('active');
             if (viewName === 'settings') icons[3].classList.add('active');
         }
+
         function startSession(hours) {
             state.isActive = true; state.requiredHours = hours; state.punchInTime = new Date();
             state.breakActive = false; state.totalBreakTaken = 0; state.isEnded = false;
             saveState(); logEvent('PUNCH_IN', `Shift: ${hours}h`); showDashboard();
         }
+
         function toggleBreak() {
             if (!state.breakActive) { state.breakActive = true; state.lastBreakStartTime = new Date(); logEvent('BREAK_START', 'Paused'); }
             else { state.breakActive = false; const duration = new Date() - state.lastBreakStartTime; state.totalBreakTaken += duration; state.lastBreakStartTime = null; logEvent('BREAK_END', `Resumed (${Math.floor(duration / 60000)}m)`); }
@@ -496,6 +514,7 @@
             logEvent(type, msg);
             showToast(`Logged: ${msg}`);
         }
+
         async function generateStandup() {
             const logs = await ipcRenderer.invoke('get-logs');
             const todayStr = new Date().toDateString();
@@ -503,11 +522,12 @@
             let summary = `Date: ${new Date().toLocaleDateString()}\n`;
             summary += `Punch In: ${state.punchInTime ? state.punchInTime.toLocaleTimeString() : 'N/A'}\nactivities:\n`;
             todayLogs.forEach(l => { summary += `- [${new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}] ${l.event_name} ${l.details ? '(' + l.details + ')' : ''}\n`; });
-            const { clipboard } = require('electron');
             clipboard.writeText(summary);
             showToast("Summary copied to clipboard!");
         }
+
         function saveNotes() { const txt = document.getElementById('dev-notes').value; ipcRenderer.invoke('save-session', 'dev-notes', txt); }
+
         function showDashboard() {
             document.getElementById('setup-screen').style.display = 'none';
             if (state.punchInTime) document.getElementById('punch-in-time').innerText = state.punchInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -516,11 +536,13 @@
             timerInterval = setInterval(updateDashboard, 1000);
             updateDashboard(); switchView('dashboard');
         }
+
         function updateUIState() {
             const btn = document.getElementById('break-btn'); const status = document.getElementById('status-text');
             if (state.breakActive) { btn.innerHTML = '<i class="fa-solid fa-play"></i> Resume Work'; btn.className = 'btn btn-success'; status.innerText = "On Break"; status.style.color = "var(--danger-color)"; }
             else { btn.innerHTML = '<i class="fa-solid fa-mug-hot"></i> Take Break'; btn.className = 'btn btn-outline'; status.innerText = "Working"; status.style.color = "var(--success-color)"; }
         }
+
         function updateDashboard() {
             if (!state.isActive) return;
             const now = new Date();
@@ -536,8 +558,10 @@
             document.getElementById('total-break-time').innerText = Math.floor(totalBreaks / 60000) + 'm';
             document.title = `Timetracker - ${formatTime(workRemainingMs)} left`;
         }
+
         async function logEvent(name, details = '') { await ipcRenderer.invoke('log-event', name, details); refreshLogs(); }
         function saveState() { ipcRenderer.invoke('save-session', 'user-state', state); }
+
         async function refreshLogs() {
             try {
                 const logs = await ipcRenderer.invoke('get-logs');
@@ -545,6 +569,7 @@
                 document.getElementById('full-log-list').innerHTML = html;
             } catch (e) { console.error(e); }
         }
+
         function formatTime(ms, short = false) {
             if (ms < 0) ms = 0; const s = Math.floor((ms / 1000) % 60); const m = Math.floor((ms / 60000) % 60); const h = Math.floor(ms / 3600000);
             const pad = n => n.toString().padStart(2, '0');
@@ -559,7 +584,7 @@
         }
 
         function endDay() {
-            if (!state.breakActive) toggleBreak(); // Pause timer if working
+            if (!state.breakActive) toggleBreak();
             state.isEnded = true;
             document.getElementById('ended-screen').classList.add('active');
             document.getElementById('end-time-display').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -570,18 +595,15 @@
         function resumeWork() {
             state.isEnded = false;
             document.getElementById('ended-screen').classList.remove('active');
-            if (state.breakActive) toggleBreak(); // Resume timer
+            if (state.breakActive) toggleBreak();
             logEvent('RESUME_DAY', 'Back to work');
         }
 
-        function exitApp() {
-            window.close();
-        }
+        function exitApp() { window.close(); }
 
         async function resetData() {
             if (confirm("Are you sure you want to delete all logs and reset?")) {
                 await ipcRenderer.invoke('clear-data');
-                // Reset local state vars just in case, though reload will fix it
                 state.isActive = false;
                 state.punchInTime = null;
                 state.totalBreakTaken = 0;
@@ -589,6 +611,22 @@
                 setTimeout(() => location.reload(), 1500);
             }
         }
+
+        // --- Logic: Only Show when Update is ready ---
+        function installUpdate() {
+            ipcRenderer.send('restart-app');
+        }
+
+        // Triggered only when a file is finished downloading
+        ipcRenderer.on('update-downloaded', () => {
+            showToast("Software update ready to install!");
+
+            // Show the Dashboard button
+            document.getElementById('update-btn-dash').style.display = 'flex';
+
+            // Show the Settings card
+            document.getElementById('update-card-settings').style.display = 'block';
+        });
 
     </script>
 </body>
