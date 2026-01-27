@@ -1,6 +1,6 @@
 {
   "name": "timetracker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Office Punch In/Out Timetracker",
   "author": "Talha",
   "main": "main.js",
