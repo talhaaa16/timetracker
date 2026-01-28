@@ -16,9 +16,9 @@ if (app.isPackaged) {
         autoUpdater.checkForUpdates();
     }, 5 * 60 * 1000);
 
-    autoUpdater.on('update-downloaded', () => {
+    autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
         BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('update-downloaded');
+            win.webContents.send('update-available-ui');
         });
     });
 }

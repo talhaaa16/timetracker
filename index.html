@@ -484,6 +484,24 @@
             setInterval(() => manualSync(true), 20 * 60 * 1000);
         };
 
+        // --- NEW: AUTO-UPDATE LISTENER ---
+        // This triggers when main.js sends the 'update-downloaded' signal
+        ipcRenderer.on('update-downloaded', () => {
+            // 1. Show button on Dashboard
+            const dashBtn = document.getElementById('update-btn-dash');
+            if (dashBtn) dashBtn.style.display = 'flex';
+
+            // 2. Show card in Settings
+            const settingsCard = document.getElementById('update-card-settings');
+            if (settingsCard) settingsCard.style.display = 'block';
+
+            // 3. Update Status Bar
+            const statusMsg = document.getElementById('status-bar-msg');
+            if (statusMsg) statusMsg.innerText = "Update Ready to Install";
+
+            showToast("New version downloaded!");
+        });
+
         function formatTime(ms, isBreakTimer = false) {
             const isNegative = ms < 0;
             const absMs = Math.abs(ms);
@@ -618,7 +636,6 @@
         function installUpdate() { ipcRenderer.send('restart-app'); }
         function saveNotes() { ipcRenderer.invoke('save-session', 'dev-notes', document.getElementById('dev-notes').value); }
 
-        /* ADDED/UPDATED FUNCTIONS */
         function addQuickLog(type, details) {
             logEvent(type, details);
             showToast(`${details} Logged`);
