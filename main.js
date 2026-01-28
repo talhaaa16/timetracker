@@ -10,33 +10,16 @@ if (app.isPackaged) {
     const feed = `${server}/talhaaa16/timetracker/${process.platform}-${process.arch}/${app.getVersion()}`;
 
     autoUpdater.setFeedURL({ url: feed });
-
-    // Check on startup
     autoUpdater.checkForUpdates();
 
-    // Check for updates every 5 minutes
     setInterval(() => {
         autoUpdater.checkForUpdates();
     }, 5 * 60 * 1000);
 
-    autoUpdater.on('update-available', () => {
-        BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('update-status', 'Downloading new update...');
-        });
-    });
-
     autoUpdater.on('update-downloaded', () => {
         BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('update-status', 'Update Ready. Restarting...');
+            win.webContents.send('update-downloaded');
         });
-        // Give user 3 seconds to read the message before restarting
-        setTimeout(() => {
-            autoUpdater.quitAndInstall();
-        }, 3000);
-    });
-
-    autoUpdater.on('error', (err) => {
-        console.error('Updater error:', err);
     });
 }
 
@@ -59,20 +42,23 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
 
-    // IPC Handlers
     ipcMain.handle('log-event', (event, name, details) => db.addLog(name, details));
     ipcMain.handle('get-logs', () => db.getLogs());
     ipcMain.handle('save-session', (event, key, val) => db.setSession(key, val));
     ipcMain.handle('get-session', (event, key) => db.getSession(key));
     ipcMain.handle('clear-data', () => db.clearData());
 
-    // Manual Update Check Handler
+    // Manual Update Trigger
+    ipcMain.on('restart-app', () => {
+        autoUpdater.quitAndInstall();
+    });
+
     ipcMain.handle('check-for-updates', () => {
         if (app.isPackaged) {
             autoUpdater.checkForUpdates();
-            return "Checking for updates...";
+            return "Checking...";
         }
-        return "Updates only work in packaged app.";
+        return "Not packaged";
     });
 });
 

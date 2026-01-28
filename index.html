@@ -180,10 +180,6 @@
             background: #ab3939;
         }
 
-        .btn-danger:hover {
-            background: #8f2f2f;
-        }
-
         .btn-success {
             background: var(--success-color);
             color: #1e1e1e;
@@ -232,29 +228,9 @@
             border-bottom: 1px solid #2a2a2a;
         }
 
-        .log-item:hover {
-            background: #2a2a2a;
-        }
-
         .log-time {
             color: var(--text-secondary);
             width: 70px;
-        }
-
-        .log-txt {
-            color: #d4d4d4;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .toast {
@@ -280,6 +256,42 @@
             animation: fadein 0.5s, fadeout 0.5s 2.5s;
         }
 
+        .ended-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(30, 30, 30, 0.95);
+            z-index: 50;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .ended-overlay.active {
+            display: flex;
+        }
+
+        /* Sync Animation */
+        .sync-spinning {
+            animation: fa-spin 1s infinite linear;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         @keyframes fadein {
             from {
                 bottom: 0;
@@ -303,25 +315,6 @@
                 opacity: 0;
             }
         }
-
-        .ended-overlay {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(30, 30, 30, 0.95);
-            z-index: 50;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .ended-overlay.active {
-            display: flex;
-        }
     </style>
 </head>
 
@@ -335,6 +328,7 @@
         <div style="flex:1"></div>
         <div class="nav-icon" onclick="switchView('settings')" title="Settings"><i class="fa-solid fa-cog"></i></div>
     </div>
+
     <div class="content-area">
         <div id="setup-screen" class="setup-screen">
             <h2 style="color:white; margin-bottom:20px;"><i class="fa-brands fa-python"></i> Dev Timetracker</h2>
@@ -348,12 +342,10 @@
 
         <div id="view-dashboard" class="view-section active-view">
             <div style="display:flex; gap:10px; margin-bottom:15px; justify-content: flex-end; align-items: center;">
-
                 <button id="update-btn-dash" class="btn" style="font-size:12px; padding:6px 12px; display: none;"
                     onclick="installUpdate()">
                     <i class="fa-solid fa-circle-up"></i> Update Available
                 </button>
-
                 <button class="btn btn-outline" style="font-size:12px; padding:6px 12px;"
                     onclick="addQuickLog('Meeting', 'Scrum / Standup')"><i class="fa-solid fa-users"></i>
                     Standup</button>
@@ -365,10 +357,8 @@
             <div class="card" style="text-align: center; border-left: 4px solid var(--accent-color);">
                 <div class="timer-label">Work Remaining</div>
                 <div id="work-timer" class="timer-big">00:00:00</div>
-                <div style="margin-top:10px; font-size:14px;">
-                    <span style="color:var(--text-secondary)">ETA: </span><span id="eta-display"
-                        style="color:white; font-weight:bold;">--:--</span>
-                </div>
+                <div style="margin-top:10px; font-size:14px;"><span style="color:var(--text-secondary)">ETA:
+                    </span><span id="eta-display" style="color:white; font-weight:bold;">--:--</span></div>
             </div>
             <div class="grid-2">
                 <div class="card">
@@ -387,36 +377,29 @@
                                 style="color: var(--success-color)">Working</span></div>
                         <div style="display:none">Break Used: <span id="total-break-time">0m</span></div>
                     </div>
-                    <button class="btn btn-danger" style="width:100%; font-size:12px;" onclick="endDay()">
-                        <i class="fa-solid fa-stop-circle"></i> End Day
-                    </button>
+                    <button class="btn btn-danger" style="width:100%; font-size:12px;" onclick="endDay()"><i
+                            class="fa-solid fa-stop-circle"></i> End Day</button>
                 </div>
             </div>
         </div>
 
         <div id="ended-screen" class="ended-overlay">
             <h2 style="color:white; margin-bottom:10px;">Day Ended</h2>
-            <p style="color:var(--text-secondary); font-size:14px; margin-bottom:30px;">
-                Great work today! <br> Time: <span id="end-time-display" style="color:var(--accent-color)">--:--</span>
+            <p style="color:var(--text-secondary); font-size:14px; margin-bottom:30px;">Great work today! <br> Time:
+                <span id="end-time-display" style="color:var(--accent-color)">--:--</span>
             </p>
             <div style="width: 200px;">
-                <button class="btn btn-success" style="width:100%; margin-bottom:10px;" onclick="resumeWork()">
-                    <i class="fa-solid fa-play"></i> Resume Work
-                </button>
-                <button class="btn btn-danger" style="width:100%;" onclick="exitApp()">
-                    <i class="fa-solid fa-power-off"></i> Exit App
-                </button>
+                <button class="btn btn-success" style="width:100%; margin-bottom:10px;" onclick="resumeWork()"><i
+                        class="fa-solid fa-play"></i> Resume Work</button>
+                <button class="btn btn-danger" style="width:100%;" onclick="exitApp()"><i
+                        class="fa-solid fa-power-off"></i> Exit App</button>
             </div>
         </div>
 
         <div id="view-scratchpad" class="view-section">
             <div class="header-title"><i class="fa-solid fa-pen-to-square"></i> Developer Notes</div>
-            <div style="flex:1; display:flex; flex-direction:column;">
-                <textarea id="dev-notes" class="scratchpad" placeholder="// Daily Todo, Snippets, or Standup notes..."
-                    oninput="saveNotes()"></textarea>
-            </div>
-            <div style="margin-top:10px; font-size:12px; color:var(--text-secondary);">*Auto-saved to local database.
-            </div>
+            <textarea id="dev-notes" class="scratchpad" placeholder="// Daily Todo, Snippets, or Standup notes..."
+                oninput="saveNotes()"></textarea>
         </div>
 
         <div id="view-logs" class="view-section">
@@ -426,6 +409,17 @@
 
         <div id="view-settings" class="view-section">
             <div class="header-title"><i class="fa-solid fa-cog"></i> Settings</div>
+
+            <div class="card">
+                <div class="timer-label">Data Management</div>
+                <div style="margin-top:10px; display:flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size:13px; color:var(--text-secondary)">Auto-syncing every 20m</span>
+                    <button class="btn btn-outline" id="sync-btn" onclick="manualSync()"
+                        style="font-size:11px; padding: 5px 10px;">
+                        <i id="sync-icon" class="fa-solid fa-arrows-rotate"></i> Sync Now
+                    </button>
+                </div>
+            </div>
 
             <div id="update-card-settings" class="card"
                 style="border-left: 4px solid var(--accent-color); display: none;">
@@ -441,28 +435,23 @@
             <div class="card">
                 <div class="timer-label">About</div>
                 <div style="margin-top:10px; font-size:13px; color:var(--text-secondary);">
-                    <p><strong>Timetracker Dev Edition</strong> v1.0.3</p>
-                    <p>Designed for productivity.</p>
+                    <p><strong>Timetracker Dev Edition</strong> v1.0.4</p>
                     <p style="margin-top:5px; color:var(--accent-color);">Built by Talha Shaikh</p>
                 </div>
             </div>
 
             <div class="card" style="border: 1px solid var(--danger-color);">
                 <div class="timer-label" style="color:var(--danger-color)">Danger Zone</div>
-                <p style="font-size:12px; color:var(--text-secondary); margin-bottom:15px;">
-                    Resetting data will clear all your logs and session history. This cannot be undone.
-                </p>
-                <button class="btn btn-danger" onclick="resetData()">
-                    <i class="fa-solid fa-trash"></i> Reset All Data
-                </button>
+                <button class="btn btn-danger" style="margin-top:10px;" onclick="resetData()"><i
+                        class="fa-solid fa-trash"></i> Reset All Data</button>
             </div>
         </div>
 
         <div id="toast" class="toast">Action Completed</div>
         <div class="status-bar"><span id="status-bar-msg">Ready</span><span><i class="fa-brands fa-electron"></i>
-                Timetracker v1.0.3</span></div>
-
+                Timetracker v1.0.4</span></div>
     </div>
+
     <script>
         const { ipcRenderer, clipboard } = require('electron');
         let state = { isActive: false, punchInTime: null, requiredHours: 0, breakActive: false, lastBreakStartTime: null, totalBreakTaken: 0, notes: "", isEnded: false };
@@ -471,21 +460,111 @@
         window.onload = async () => {
             try {
                 const savedState = await ipcRenderer.invoke('get-session', 'user-state');
-                if (savedState && savedState.isActive) {
-                    state = { ...savedState, punchInTime: new Date(savedState.punchInTime), lastBreakStartTime: savedState.lastBreakStartTime ? new Date(savedState.lastBreakStartTime) : null };
-                    if (state.isEnded) {
-                        document.getElementById('setup-screen').style.display = 'none';
-                        document.getElementById('ended-screen').classList.add('active');
-                        document.getElementById('end-time-display').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (savedState) {
+                    const savedDate = new Date(savedState.punchInTime).toDateString();
+                    const today = new Date().toDateString();
+
+                    if (savedDate === today && savedState.isActive) {
+                        state = {
+                            ...savedState,
+                            punchInTime: new Date(savedState.punchInTime),
+                            lastBreakStartTime: savedState.lastBreakStartTime ? new Date(savedState.lastBreakStartTime) : null
+                        };
+                        state.isEnded ? showEnded() : showDashboard();
                     } else {
-                        showDashboard();
+                        state.isActive = false;
                     }
                 }
+
                 const savedNotes = await ipcRenderer.invoke('get-session', 'dev-notes');
-                if (savedNotes) { document.getElementById('dev-notes').value = savedNotes; state.notes = savedNotes; }
+                if (savedNotes) document.getElementById('dev-notes').value = savedNotes;
             } catch (e) { console.error(e); }
             refreshLogs();
+
+            setInterval(() => manualSync(true), 20 * 60 * 1000);
         };
+
+        function formatTime(ms, isBreakTimer = false) {
+            const isNegative = ms < 0;
+            const absMs = Math.abs(ms);
+            const s = Math.floor((absMs / 1000) % 60);
+            const m = Math.floor((absMs / 60000) % 60);
+            const h = Math.floor(absMs / 3600000);
+            const pad = n => n.toString().padStart(2, '0');
+            if (isBreakTimer) {
+                if (isNegative) return `-${pad(m)}:${pad(s)}`;
+                return `${pad(m)}:${pad(s)}`;
+            }
+            return `${pad(h)}:${pad(m)}:${pad(s)}`;
+        }
+
+        function resumeWork() {
+            state.isEnded = false;
+            if (state.breakActive) { state.breakActive = true; }
+            document.getElementById('ended-screen').classList.remove('active');
+            showDashboard();
+            logEvent('RESUME_WORK', 'Returned from Ended Day status');
+            saveState();
+        }
+
+        function showDashboard() {
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('ended-screen').classList.remove('active');
+            if (state.punchInTime) document.getElementById('punch-in-time').innerText = state.punchInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            updateUIState();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateDashboard, 1000);
+            updateDashboard();
+            switchView('dashboard');
+        }
+
+        function updateDashboard() {
+            if (!state.isActive || state.isEnded) return;
+            const now = new Date();
+            let currentBreakSession = state.breakActive ? (now - state.lastBreakStartTime) : 0;
+            let totalBreaks = state.totalBreakTaken + currentBreakSession;
+            const totalWorkMs = state.requiredHours * 3600000;
+            const endTime = new Date(state.punchInTime.getTime() + totalWorkMs + totalBreaks);
+            let rem = endTime - now;
+            if (rem < 0) rem = 0;
+            let breakRem = 3600000 - totalBreaks;
+            document.getElementById('work-timer').innerText = formatTime(rem);
+            document.getElementById('break-timer').innerText = formatTime(breakRem, true);
+            document.getElementById('eta-display').innerText = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            document.title = `${formatTime(rem)} left`;
+        }
+
+        function startSession(hours) {
+            state = { isActive: true, requiredHours: hours, punchInTime: new Date(), breakActive: false, totalBreakTaken: 0, isEnded: false };
+            saveState(); logEvent('PUNCH_IN', `Shift: ${hours}h`); showDashboard();
+        }
+
+        function toggleBreak() {
+            if (!state.breakActive) {
+                state.breakActive = true;
+                state.lastBreakStartTime = new Date();
+                logEvent('BREAK_START');
+            } else {
+                state.breakActive = false;
+                state.totalBreakTaken += (new Date() - state.lastBreakStartTime);
+                state.lastBreakStartTime = null;
+                logEvent('BREAK_END');
+            }
+            updateUIState(); saveState(); updateDashboard();
+        }
+
+        function endDay() {
+            state.isEnded = true;
+            showEnded();
+            saveState();
+            logEvent('END_DAY');
+        }
+
+        function showEnded() {
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('ended-screen').classList.add('active');
+            document.getElementById('end-time-display').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
 
         function switchView(viewName) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
@@ -498,43 +577,33 @@
             if (viewName === 'settings') icons[3].classList.add('active');
         }
 
-        function startSession(hours) {
-            state.isActive = true; state.requiredHours = hours; state.punchInTime = new Date();
-            state.breakActive = false; state.totalBreakTaken = 0; state.isEnded = false;
-            saveState(); logEvent('PUNCH_IN', `Shift: ${hours}h`); showDashboard();
-        }
-
-        function toggleBreak() {
-            if (!state.breakActive) { state.breakActive = true; state.lastBreakStartTime = new Date(); logEvent('BREAK_START', 'Paused'); }
-            else { state.breakActive = false; const duration = new Date() - state.lastBreakStartTime; state.totalBreakTaken += duration; state.lastBreakStartTime = null; logEvent('BREAK_END', `Resumed (${Math.floor(duration / 60000)}m)`); }
-            updateUIState(); saveState(); updateDashboard();
-        }
-
-        function addQuickLog(type, msg) {
-            logEvent(type, msg);
-            showToast(`Logged: ${msg}`);
-        }
-
-        async function generateStandup() {
+        async function logEvent(name, details = '') { await ipcRenderer.invoke('log-event', name, details); refreshLogs(); }
+        function saveState() { ipcRenderer.invoke('save-session', 'user-state', state); }
+        async function refreshLogs() {
             const logs = await ipcRenderer.invoke('get-logs');
-            const todayStr = new Date().toDateString();
-            const todayLogs = logs.filter(l => new Date(l.timestamp).toDateString() === todayStr);
-            let summary = `Date: ${new Date().toLocaleDateString()}\n`;
-            summary += `Punch In: ${state.punchInTime ? state.punchInTime.toLocaleTimeString() : 'N/A'}\nactivities:\n`;
-            todayLogs.forEach(l => { summary += `- [${new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}] ${l.event_name} ${l.details ? '(' + l.details + ')' : ''}\n`; });
-            clipboard.writeText(summary);
-            showToast("Summary copied to clipboard!");
+            const today = new Date().toDateString();
+            const todayLogs = logs.filter(log => new Date(log.timestamp).toDateString() === today);
+            const logContainer = document.getElementById('full-log-list');
+            if (todayLogs.length === 0) {
+                logContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary);">No activity for today yet.</div>';
+                return;
+            }
+            logContainer.innerHTML = todayLogs.map(log => {
+                const meta = getLogMeta(log.event_name);
+                return `<div class="log-item" style="border-left: 3px solid ${meta.color}; margin-bottom: 2px; background: rgba(255,255,255,0.02);"><div class="log-time" style="font-size: 10px; min-width: 60px;">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div><div class="log-txt"><i class="${meta.icon}" style="color: ${meta.color}; width: 20px;"></i><span style="color:white; font-weight:600; margin-right: 5px;">${log.event_name.replace('_', ' ')}</span><span style="color:var(--text-secondary); font-size: 11px;">${log.details || ''}</span></div></div>`;
+            }).join('');
         }
 
-        function saveNotes() { const txt = document.getElementById('dev-notes').value; ipcRenderer.invoke('save-session', 'dev-notes', txt); }
-
-        function showDashboard() {
-            document.getElementById('setup-screen').style.display = 'none';
-            if (state.punchInTime) document.getElementById('punch-in-time').innerText = state.punchInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            updateUIState();
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(updateDashboard, 1000);
-            updateDashboard(); switchView('dashboard');
+        function getLogMeta(event) {
+            switch (event) {
+                case 'PUNCH_IN': return { icon: 'fa-solid fa-sign-in-alt', color: '#89d185' };
+                case 'BREAK_START': return { icon: 'fa-solid fa-coffee', color: '#f48771' };
+                case 'BREAK_END': return { icon: 'fa-solid fa-play-circle', color: '#4fc1ff' };
+                case 'END_DAY': return { icon: 'fa-solid fa-flag-checkered', color: '#ffcc00' };
+                case 'RESUME_WORK': return { icon: 'fa-solid fa-briefcase', color: '#b5cea8' };
+                case 'Meeting': return { icon: 'fa-solid fa-users', color: '#ce9178' };
+                default: return { icon: 'fa-solid fa-circle-info', color: '#9cdcfe' };
+            }
         }
 
         function updateUIState() {
@@ -543,91 +612,40 @@
             else { btn.innerHTML = '<i class="fa-solid fa-mug-hot"></i> Take Break'; btn.className = 'btn btn-outline'; status.innerText = "Working"; status.style.color = "var(--success-color)"; }
         }
 
-        function updateDashboard() {
-            if (!state.isActive) return;
-            const now = new Date();
-            let currentSessionBreak = 0; if (state.breakActive && state.lastBreakStartTime) currentSessionBreak = now - state.lastBreakStartTime;
-            const totalBreaks = state.totalBreakTaken + currentSessionBreak;
-            const requiredMs = state.requiredHours * 3600000;
-            const etaDate = new Date(state.punchInTime.getTime() + requiredMs + totalBreaks);
-            let workRemainingMs = etaDate - now; if (workRemainingMs < 0) workRemainingMs = 0;
-            const maxBreakMs = 3600000; let breakRemainingMs = maxBreakMs - totalBreaks; if (breakRemainingMs < 0) breakRemainingMs = 0;
-            document.getElementById('work-timer').innerText = formatTime(workRemainingMs);
-            document.getElementById('break-timer').innerText = formatTime(breakRemainingMs, true);
-            document.getElementById('eta-display').innerText = etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            document.getElementById('total-break-time').innerText = Math.floor(totalBreaks / 60000) + 'm';
-            document.title = `Timetracker - ${formatTime(workRemainingMs)} left`;
-        }
-
-        async function logEvent(name, details = '') { await ipcRenderer.invoke('log-event', name, details); refreshLogs(); }
-        function saveState() { ipcRenderer.invoke('save-session', 'user-state', state); }
-
-        async function refreshLogs() {
-            try {
-                const logs = await ipcRenderer.invoke('get-logs');
-                const html = logs.map(log => `<div class="log-item"><div class="log-time">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div><div class="log-txt"><span style="color:#fff; font-weight:bold;">${log.event_name}</span> ${log.details}</div></div>`).join('');
-                document.getElementById('full-log-list').innerHTML = html;
-            } catch (e) { console.error(e); }
-        }
-
-        function formatTime(ms, short = false) {
-            if (ms < 0) ms = 0; const s = Math.floor((ms / 1000) % 60); const m = Math.floor((ms / 60000) % 60); const h = Math.floor(ms / 3600000);
-            const pad = n => n.toString().padStart(2, '0');
-            if (short && h === 0) return `${pad(m)}:${pad(s)}`; return `${pad(h)}:${pad(m)}:${pad(s)}`;
-        }
-
-        function showToast(message) {
-            const x = document.getElementById("toast");
-            x.innerText = message;
-            x.className = "toast show";
-            setTimeout(function () { x.className = x.className.replace("show", ""); }, 3000);
-        }
-
-        function endDay() {
-            if (!state.breakActive) toggleBreak();
-            state.isEnded = true;
-            document.getElementById('ended-screen').classList.add('active');
-            document.getElementById('end-time-display').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            saveState();
-            logEvent('END_DAY', 'Work Stopped');
-        }
-
-        function resumeWork() {
-            state.isEnded = false;
-            document.getElementById('ended-screen').classList.remove('active');
-            if (state.breakActive) toggleBreak();
-            logEvent('RESUME_DAY', 'Back to work');
-        }
-
+        function showToast(m) { const x = document.getElementById("toast"); x.innerText = m; x.className = "toast show"; setTimeout(() => x.className = "toast", 3000); }
         function exitApp() { window.close(); }
+        async function resetData() { if (confirm("Clear all?")) { await ipcRenderer.invoke('clear-data'); location.reload(); } }
+        function installUpdate() { ipcRenderer.send('restart-app'); }
+        function saveNotes() { ipcRenderer.invoke('save-session', 'dev-notes', document.getElementById('dev-notes').value); }
 
-        async function resetData() {
-            if (confirm("Are you sure you want to delete all logs and reset?")) {
-                await ipcRenderer.invoke('clear-data');
-                state.isActive = false;
-                state.punchInTime = null;
-                state.totalBreakTaken = 0;
-                showToast("Data Reset. Restarting...");
-                setTimeout(() => location.reload(), 1500);
-            }
+        /* ADDED/UPDATED FUNCTIONS */
+        function addQuickLog(type, details) {
+            logEvent(type, details);
+            showToast(`${details} Logged`);
         }
 
-        // --- Logic: Only Show when Update is ready ---
-        function installUpdate() {
-            ipcRenderer.send('restart-app');
+        async function generateStandup() {
+            const logs = await ipcRenderer.invoke('get-logs');
+            const today = new Date().toDateString();
+            const activities = logs
+                .filter(log => new Date(log.timestamp).toDateString() === today && log.event_name === 'Meeting')
+                .map(log => `- ${log.details}`)
+                .join('\n');
+            const summary = `*Today's Activity:*\n- Punched in at: ${state.punchInTime.toLocaleTimeString()}\n${activities || '- Worked on tasks'}\n- Status: Finished for the day`;
+            clipboard.writeText(summary);
+            showToast("Summary copied to clipboard!");
         }
 
-        // Triggered only when a file is finished downloading
-        ipcRenderer.on('update-downloaded', () => {
-            showToast("Software update ready to install!");
-
-            // Show the Dashboard button
-            document.getElementById('update-btn-dash').style.display = 'flex';
-
-            // Show the Settings card
-            document.getElementById('update-card-settings').style.display = 'block';
-        });
-
+        async function manualSync(isAuto = false) {
+            const icon = document.getElementById('sync-icon');
+            icon.classList.add('sync-spinning');
+            try {
+                await saveState();
+                await saveNotes();
+                if (!isAuto) showToast("Data Synced Successfully");
+            } catch (e) { console.error(e); }
+            setTimeout(() => icon.classList.remove('sync-spinning'), 1000);
+        }
     </script>
 </body>
 
