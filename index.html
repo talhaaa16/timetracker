@@ -484,9 +484,7 @@
             setInterval(() => manualSync(true), 20 * 60 * 1000);
         };
 
-        // --- NEW: AUTO-UPDATE LISTENER ---
-        // This triggers when main.js sends the 'update-downloaded' signal
-        ipcRenderer.on('update-downloaded', () => {
+        ipcRenderer.on('update-available-ui', () => {
             // 1. Show button on Dashboard
             const dashBtn = document.getElementById('update-btn-dash');
             if (dashBtn) dashBtn.style.display = 'flex';

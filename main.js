@@ -10,16 +10,27 @@ if (app.isPackaged) {
     const feed = `${server}/talhaaa16/timetracker/${process.platform}-${process.arch}/${app.getVersion()}`;
 
     autoUpdater.setFeedURL({ url: feed });
+
+    // Check immediately on startup
     autoUpdater.checkForUpdates();
 
+    // Re-check every 5 minutes
     setInterval(() => {
         autoUpdater.checkForUpdates();
     }, 5 * 60 * 1000);
 
+    // This event fires ONLY when the update is fully downloaded and ready
     autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
         BrowserWindow.getAllWindows().forEach(win => {
+            // MATCH THIS STRING in your index.html ipcRenderer.on()
             win.webContents.send('update-available-ui');
         });
+    });
+
+    // Handle update errors (good for debugging those "Access Denied" issues)
+    autoUpdater.on('error', (message) => {
+        console.error('There was a problem updating the application');
+        console.error(message);
     });
 }
 
@@ -48,7 +59,7 @@ app.whenReady().then(() => {
     ipcMain.handle('get-session', (event, key) => db.getSession(key));
     ipcMain.handle('clear-data', () => db.clearData());
 
-    // Manual Update Trigger
+    // Triggered when user clicks "Restart & Update" button in UI
     ipcMain.on('restart-app', () => {
         autoUpdater.quitAndInstall();
     });
