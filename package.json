@@ -1,10 +1,13 @@
 {
   "name": "timetracker",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "Office Punch In/Out Timetracker",
   "author": "Talha",
   "main": "main.js",
-  "repository": "https://github.com/talhaaa16/timetracker",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/talhaaa16/timetracker.git"
+  },
   "scripts": {
     "start": "electron .",
     "postinstall": "electron-rebuild -f -w better-sqlite3",
@@ -16,9 +19,8 @@
     "@electron-forge/maker-squirrel": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/publisher-github": "^7.0.0",
-    "@electron/rebuild": "^4.0.2",
-    "electron": "^34.0.0",
-    "electron-rebuild": "^3.2.9"
+    "@electron/rebuild": "^4.0.3",
+    "electron": "^34.0.0"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
@@ -29,11 +31,13 @@
     "forge": {
       "packagerConfig": {
         "asar": true,
+        "asarUnpack": [
+          "**/node_modules/better-sqlite3/**/*"
+        ],
         "ignore": [
           "/out($|/)",
-          "/\\.git($|/)",
-          "/src($|/)",
-          "/\\.vscode($|/)"
+          "/.git($|/)",
+          "/.vscode($|/)"
         ]
       },
       "makers": [
@@ -58,8 +62,8 @@
               "owner": "talhaaa16",
               "name": "timetracker"
             },
-            "prerelease": false,
-            "draft": true
+            "draft": true,
+            "prerelease": false
           }
         }
       ]
