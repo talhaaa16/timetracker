@@ -27,7 +27,13 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "asar": true
+        "asar": true,
+        "ignore": [
+          "/out($|/)",
+          "/\\.git($|/)",
+          "/src($|/)",
+          "/\\.vscode($|/)"
+        ]
       },
       "makers": [
         {
