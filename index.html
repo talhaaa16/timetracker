@@ -275,7 +275,6 @@
             display: flex;
         }
 
-        /* Sync Animation */
         .sync-spinning {
             animation: fa-spin 1s infinite linear;
         }
@@ -326,18 +325,21 @@
         </div>
         <div class="nav-icon" onclick="switchView('logs')" title="Event Logs"><i class="fa-solid fa-list-ul"></i></div>
         <div style="flex:1"></div>
+        <div class="nav-icon" id="user-avatar" title="Profile"
+            style="color: var(--accent-color); font-weight: bold; font-size: 14px;">??</div>
         <div class="nav-icon" onclick="switchView('settings')" title="Settings"><i class="fa-solid fa-cog"></i></div>
     </div>
 
     <div class="content-area">
         <div id="setup-screen" class="setup-screen">
-            <h2 style="color:white; margin-bottom:20px;"><i class="fa-brands fa-python"></i> Dev Timetracker</h2>
+            <h2 style="color:white; margin-bottom:5px;"><i class="fa-brands fa-python"></i> Dev Timetracker</h2>
+            <p id="welcome-msg" style="color:var(--text-secondary); margin-bottom:20px; font-size:13px;">Welcome back,
+                Developer</p>
             <div class="card" style="width: 250px;">
                 <button class="btn" style="width:100%; margin-bottom:10px;" onclick="startSession(8.25)">FT (8h
                     15m)</button>
                 <button class="btn btn-outline" style="width:100%;" onclick="startSession(4.25)">HT (4h 15m)</button>
             </div>
-            <p style="color: var(--text-secondary); font-size:12px; margin-top:20px;">Ready to code.</p>
         </div>
 
         <div id="view-dashboard" class="view-section active-view">
@@ -375,7 +377,6 @@
                         <div>In: <span id="punch-in-time" style="color:#fff">--:--</span></div>
                         <div style="margin-top:5px;">State: <span id="status-text"
                                 style="color: var(--success-color)">Working</span></div>
-                        <div style="display:none">Break Used: <span id="total-break-time">0m</span></div>
                     </div>
                     <button class="btn btn-danger" style="width:100%; font-size:12px;" onclick="endDay()"><i
                             class="fa-solid fa-stop-circle"></i> End Day</button>
@@ -409,6 +410,18 @@
 
         <div id="view-settings" class="view-section">
             <div class="header-title"><i class="fa-solid fa-cog"></i> Settings</div>
+
+            <div class="card">
+                <div class="timer-label">Account</div>
+                <div style="margin-top:10px; display:flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div id="settings-name" style="color: white; font-weight: 600;">Loading...</div>
+                        <div id="settings-email" style="font-size:12px; color:var(--text-secondary)">---</div>
+                    </div>
+                    <button class="btn btn-danger" onclick="logout()"
+                        style="font-size:11px; padding: 5px 12px;">Logout</button>
+                </div>
+            </div>
 
             <div class="card">
                 <div class="timer-label">Data Management</div>
@@ -453,13 +466,34 @@
     </div>
 
     <script>
-        const { ipcRenderer, clipboard } = require('electron');
-        let state = { isActive: false, punchInTime: null, requiredHours: 0, breakActive: false, lastBreakStartTime: null, totalBreakTaken: 0, notes: "", isEnded: false };
+        // Accessing the bridge defined in preload.js
+        const api = window.electronAPI;
+
+        let state = {
+            isActive: false,
+            punchInTime: null,
+            requiredHours: 0,
+            breakActive: false,
+            lastBreakStartTime: null,
+            totalBreakTaken: 0,
+            notes: "",
+            isEnded: false
+        };
         let timerInterval = null;
 
         window.onload = async () => {
+            // 1. Load User Profile via the API bridge
+            const user = await api.invoke('get-user-profile');
+            if (user) {
+                document.getElementById('user-avatar').innerText = user.firstName[0].toUpperCase() + (user.lastName ? user.lastName[0].toUpperCase() : "");
+                document.getElementById('welcome-msg').innerText = `Welcome back, ${user.firstName}`;
+                document.getElementById('settings-name').innerText = `${user.firstName} ${user.lastName}`;
+                document.getElementById('settings-email').innerText = user.email;
+            }
+
+            // 2. Load Saved Session
             try {
-                const savedState = await ipcRenderer.invoke('get-session', 'user-state');
+                const savedState = await api.invoke('get-session', 'user-state');
                 if (savedState) {
                     const savedDate = new Date(savedState.punchInTime).toDateString();
                     const today = new Date().toDateString();
@@ -476,29 +510,34 @@
                     }
                 }
 
-                const savedNotes = await ipcRenderer.invoke('get-session', 'dev-notes');
+                const savedNotes = await api.invoke('get-session', 'dev-notes');
                 if (savedNotes) document.getElementById('dev-notes').value = savedNotes;
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error("Session load error:", e);
+            }
+
             refreshLogs();
 
+            // Auto-sync every 20 mins
             setInterval(() => manualSync(true), 20 * 60 * 1000);
         };
 
-        ipcRenderer.on('update-available-ui', () => {
-            // 1. Show button on Dashboard
+        // Listen for updates from Main process
+        api.on('update-available-ui', () => {
             const dashBtn = document.getElementById('update-btn-dash');
             if (dashBtn) dashBtn.style.display = 'flex';
-
-            // 2. Show card in Settings
             const settingsCard = document.getElementById('update-card-settings');
             if (settingsCard) settingsCard.style.display = 'block';
-
-            // 3. Update Status Bar
             const statusMsg = document.getElementById('status-bar-msg');
             if (statusMsg) statusMsg.innerText = "Update Ready to Install";
-
             showToast("New version downloaded!");
         });
+
+        function logout() {
+            if (confirm("Are you sure you want to logout?")) {
+                api.send('request-logout');
+            }
+        }
 
         function formatTime(ms, isBreakTimer = false) {
             const isNegative = ms < 0;
@@ -507,26 +546,35 @@
             const m = Math.floor((absMs / 60000) % 60);
             const h = Math.floor(absMs / 3600000);
             const pad = n => n.toString().padStart(2, '0');
+
             if (isBreakTimer) {
-                if (isNegative) return `-${pad(m)}:${pad(s)}`;
-                return `${pad(m)}:${pad(s)}`;
+                return (isNegative ? "-" : "") + `${pad(m)}:${pad(s)}`;
             }
             return `${pad(h)}:${pad(m)}:${pad(s)}`;
         }
 
-        function resumeWork() {
-            state.isEnded = false;
-            if (state.breakActive) { state.breakActive = true; }
-            document.getElementById('ended-screen').classList.remove('active');
-            showDashboard();
-            logEvent('RESUME_WORK', 'Returned from Ended Day status');
+        function startSession(hours) {
+            state = {
+                isActive: true,
+                requiredHours: hours,
+                punchInTime: new Date(),
+                breakActive: false,
+                totalBreakTaken: 0,
+                isEnded: false
+            };
             saveState();
+            logEvent('PUNCH_IN', `Shift: ${hours}h`);
+            showDashboard();
         }
 
         function showDashboard() {
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('ended-screen').classList.remove('active');
-            if (state.punchInTime) document.getElementById('punch-in-time').innerText = state.punchInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (state.punchInTime) {
+                document.getElementById('punch-in-time').innerText = state.punchInTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
             updateUIState();
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(updateDashboard, 1000);
@@ -536,23 +584,23 @@
 
         function updateDashboard() {
             if (!state.isActive || state.isEnded) return;
+
             const now = new Date();
             let currentBreakSession = state.breakActive ? (now - state.lastBreakStartTime) : 0;
             let totalBreaks = state.totalBreakTaken + currentBreakSession;
+
             const totalWorkMs = state.requiredHours * 3600000;
             const endTime = new Date(state.punchInTime.getTime() + totalWorkMs + totalBreaks);
+
             let rem = endTime - now;
             if (rem < 0) rem = 0;
+
             let breakRem = 3600000 - totalBreaks;
+
             document.getElementById('work-timer').innerText = formatTime(rem);
             document.getElementById('break-timer').innerText = formatTime(breakRem, true);
             document.getElementById('eta-display').innerText = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             document.title = `${formatTime(rem)} left`;
-        }
-
-        function startSession(hours) {
-            state = { isActive: true, requiredHours: hours, punchInTime: new Date(), breakActive: false, totalBreakTaken: 0, isEnded: false };
-            saveState(); logEvent('PUNCH_IN', `Shift: ${hours}h`); showDashboard();
         }
 
         function toggleBreak() {
@@ -566,7 +614,9 @@
                 state.lastBreakStartTime = null;
                 logEvent('BREAK_END');
             }
-            updateUIState(); saveState(); updateDashboard();
+            updateUIState();
+            saveState();
+            updateDashboard();
         }
 
         function endDay() {
@@ -582,31 +632,58 @@
             document.getElementById('end-time-display').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
+        function resumeWork() {
+            state.isEnded = false;
+            document.getElementById('ended-screen').classList.remove('active');
+            showDashboard();
+            logEvent('RESUME_WORK', 'Returned from Ended Day status');
+            saveState();
+        }
+
         function switchView(viewName) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active-view'));
             document.getElementById('view-' + viewName).classList.add('active-view');
+
             const icons = document.querySelectorAll('.nav-icon');
             icons.forEach(i => i.classList.remove('active'));
+
             if (viewName === 'dashboard') icons[0].classList.add('active');
             if (viewName === 'scratchpad') icons[1].classList.add('active');
             if (viewName === 'logs') icons[2].classList.add('active');
-            if (viewName === 'settings') icons[3].classList.add('active');
+            if (viewName === 'settings') icons[5].classList.add('active');
         }
 
-        async function logEvent(name, details = '') { await ipcRenderer.invoke('log-event', name, details); refreshLogs(); }
-        function saveState() { ipcRenderer.invoke('save-session', 'user-state', state); }
+        // API Bridge Wrappers
+        async function logEvent(name, details = '') {
+            await api.invoke('log-event', name, details);
+            refreshLogs();
+        }
+
+        function saveState() {
+            api.invoke('save-session', 'user-state', state);
+        }
+
         async function refreshLogs() {
-            const logs = await ipcRenderer.invoke('get-logs');
+            const logs = await api.invoke('get-logs');
             const today = new Date().toDateString();
             const todayLogs = logs.filter(log => new Date(log.timestamp).toDateString() === today);
             const logContainer = document.getElementById('full-log-list');
+
             if (todayLogs.length === 0) {
                 logContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary);">No activity for today yet.</div>';
                 return;
             }
+
             logContainer.innerHTML = todayLogs.map(log => {
                 const meta = getLogMeta(log.event_name);
-                return `<div class="log-item" style="border-left: 3px solid ${meta.color}; margin-bottom: 2px; background: rgba(255,255,255,0.02);"><div class="log-time" style="font-size: 10px; min-width: 60px;">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div><div class="log-txt"><i class="${meta.icon}" style="color: ${meta.color}; width: 20px;"></i><span style="color:white; font-weight:600; margin-right: 5px;">${log.event_name.replace('_', ' ')}</span><span style="color:var(--text-secondary); font-size: 11px;">${log.details || ''}</span></div></div>`;
+                return `<div class="log-item" style="border-left: 3px solid ${meta.color}; margin-bottom: 2px; background: rgba(255,255,255,0.02);">
+                <div class="log-time" style="font-size: 10px; min-width: 60px;">${new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                <div class="log-txt">
+                    <i class="${meta.icon}" style="color: ${meta.color}; width: 20px;"></i>
+                    <span style="color:white; font-weight:600; margin-right: 5px;">${log.event_name.replace('_', ' ')}</span>
+                    <span style="color:var(--text-secondary); font-size: 11px;">${log.details || ''}</span>
+                </div>
+            </div>`;
             }).join('');
         }
 
@@ -623,16 +700,42 @@
         }
 
         function updateUIState() {
-            const btn = document.getElementById('break-btn'); const status = document.getElementById('status-text');
-            if (state.breakActive) { btn.innerHTML = '<i class="fa-solid fa-play"></i> Resume Work'; btn.className = 'btn btn-success'; status.innerText = "On Break"; status.style.color = "var(--danger-color)"; }
-            else { btn.innerHTML = '<i class="fa-solid fa-mug-hot"></i> Take Break'; btn.className = 'btn btn-outline'; status.innerText = "Working"; status.style.color = "var(--success-color)"; }
+            const btn = document.getElementById('break-btn');
+            const status = document.getElementById('status-text');
+            if (state.breakActive) {
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> Resume Work';
+                btn.className = 'btn btn-success';
+                status.innerText = "On Break";
+                status.style.color = "var(--danger-color)";
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-mug-hot"></i> Take Break';
+                btn.className = 'btn btn-outline';
+                status.innerText = "Working";
+                status.style.color = "var(--success-color)";
+            }
         }
 
-        function showToast(m) { const x = document.getElementById("toast"); x.innerText = m; x.className = "toast show"; setTimeout(() => x.className = "toast", 3000); }
+        function showToast(m) {
+            const x = document.getElementById("toast");
+            x.innerText = m;
+            x.className = "toast show";
+            setTimeout(() => x.className = "toast", 3000);
+        }
+
         function exitApp() { window.close(); }
-        async function resetData() { if (confirm("Clear all?")) { await ipcRenderer.invoke('clear-data'); location.reload(); } }
-        function installUpdate() { ipcRenderer.send('restart-app'); }
-        function saveNotes() { ipcRenderer.invoke('save-session', 'dev-notes', document.getElementById('dev-notes').value); }
+
+        async function resetData() {
+            if (confirm("Clear all data? This cannot be undone.")) {
+                await api.invoke('clear-data');
+                location.reload();
+            }
+        }
+
+        function installUpdate() { api.send('restart-app'); }
+
+        function saveNotes() {
+            api.invoke('save-session', 'dev-notes', document.getElementById('dev-notes').value);
+        }
 
         function addQuickLog(type, details) {
             logEvent(type, details);
@@ -640,26 +743,30 @@
         }
 
         async function generateStandup() {
-            const logs = await ipcRenderer.invoke('get-logs');
+            const logs = await api.invoke('get-logs');
             const today = new Date().toDateString();
             const activities = logs
                 .filter(log => new Date(log.timestamp).toDateString() === today && log.event_name === 'Meeting')
                 .map(log => `- ${log.details}`)
                 .join('\n');
+
             const summary = `*Today's Activity:*\n- Punched in at: ${state.punchInTime.toLocaleTimeString()}\n${activities || '- Worked on tasks'}\n- Status: Finished for the day`;
-            clipboard.writeText(summary);
+
+            api.copyText(summary);
             showToast("Summary copied to clipboard!");
         }
 
         async function manualSync(isAuto = false) {
             const icon = document.getElementById('sync-icon');
-            icon.classList.add('sync-spinning');
+            if (icon) icon.classList.add('sync-spinning');
             try {
                 await saveState();
                 await saveNotes();
                 if (!isAuto) showToast("Data Synced Successfully");
-            } catch (e) { console.error(e); }
-            setTimeout(() => icon.classList.remove('sync-spinning'), 1000);
+            } catch (e) {
+                console.error("Sync error:", e);
+            }
+            setTimeout(() => { if (icon) icon.classList.remove('sync-spinning') }, 1000);
         }
     </script>
 </body>

@@ -1,90 +1,132 @@
-// 1. Handle Squirrel events immediately (CRITICAL)
-// This MUST stay at the very top to prevent multiple instances during install/update
-if (require('electron-squirrel-startup')) {
-    const { app } = require('electron');
+if (require("electron-squirrel-startup")) {
+    const { app } = require("electron");
     app.quit();
-    // Use process.exit to ensure the process terminates before DB logic starts
     process.exit(0);
 }
 
-const { app, BrowserWindow, ipcMain, autoUpdater } = require('electron');
-const path = require('path');
+const { app, BrowserWindow, ipcMain, autoUpdater } = require("electron");
+const path = require("path");
 
-// 2. DEFINE DB VARIABLE (Don't 'require' it yet)
+let mainWindow;
 let db;
+let currentUser = null;
 
+/* ============================
+   CREATE WINDOW
+   ============================ */
 function createWindow() {
-    const win = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 500,
         height: 750,
         resizable: true,
-        icon: path.join(__dirname, 'icon.ico'),
+        icon: path.join(__dirname, "icon.ico"),
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
+            preload: path.join(__dirname, "preload.js"),
+            nodeIntegration: false,
+            contextIsolation: true
         }
     });
 
-    win.loadFile('index.html');
-    win.setMenu(null);
+    mainWindow.loadFile("login.html");
+    mainWindow.setMenu(null);
 }
 
-// --- AUTO UPDATER LOGIC ---
+/* ============================
+   AUTH SUCCESS (FROM RENDERER)
+   ============================ */
+ipcMain.on("auth-success", (_, userData) => {
+    console.log("Main process received auth-success for:", userData.email);
+    console.log("Authenticated UID:", userData.uid);
+
+    currentUser = userData;
+
+    mainWindow
+        .loadFile(path.join(__dirname, "index.html"))
+        .catch(err => console.error("Failed to load index.html:", err));
+});
+
+/* ============================
+   LOGOUT
+   ============================ */
+ipcMain.on("request-logout", () => {
+    console.log("User logged out");
+    currentUser = null;
+
+    if (mainWindow) {
+        mainWindow.loadFile("login.html");
+    }
+});
+
+/* ============================
+   AUTO UPDATE (PRODUCTION ONLY)
+   ============================ */
 if (app.isPackaged) {
-    const server = 'https://update.electronjs.org';
+    const server = "https://update.electronjs.org";
     const feed = `${server}/talhaaa16/timetracker/${process.platform}-${process.arch}/${app.getVersion()}`;
 
     autoUpdater.setFeedURL({ url: feed });
 
-    // Important: Wait 10 seconds before checking for updates on startup
-    // This prevents Squirrel from locking the update file while we check
-    app.on('ready', () => {
-        setTimeout(() => {
-            autoUpdater.checkForUpdates();
-        }, 10000);
+    app.on("ready", () => {
+        setTimeout(() => autoUpdater.checkForUpdates(), 10000);
     });
 
-    setInterval(() => {
-        autoUpdater.checkForUpdates();
-    }, 5 * 60 * 1000);
+    setInterval(() => autoUpdater.checkForUpdates(), 5 * 60 * 1000);
 
-    autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
+    autoUpdater.on("update-downloaded", () => {
         BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('update-available-ui');
+            win.webContents.send("update-available-ui");
         });
     });
 
-    autoUpdater.on('error', (message) => {
-        console.error('Update Error:', message);
-    });
+    autoUpdater.on("error", err =>
+        console.error("AutoUpdater error:", err)
+    );
 }
 
-// 3. START DATABASE ONLY WHEN APP IS READY
+/* ============================
+   APP READY
+   ============================ */
 app.whenReady().then(() => {
-    // Require your database logic here so it doesn't lock files during the Squirrel setup
-    db = require('./database.js');
+    // 🔥 Database loads AFTER app is ready
+    db = require("./database.js");
 
     createWindow();
 
-    ipcMain.handle('log-event', (event, name, details) => db.addLog(name, details));
-    ipcMain.handle('get-logs', () => db.getLogs());
-    ipcMain.handle('save-session', (event, key, val) => db.setSession(key, val));
-    ipcMain.handle('get-session', (event, key) => db.getSession(key));
-    ipcMain.handle('clear-data', () => db.clearData());
+    ipcMain.handle("get-user-profile", () => currentUser);
 
-    ipcMain.on('restart-app', () => {
-        autoUpdater.quitAndInstall();
-    });
-
-    ipcMain.handle('check-for-updates', () => {
-        if (app.isPackaged) {
-            autoUpdater.checkForUpdates();
-            return "Checking...";
+    ipcMain.handle("log-event", async (_, name, details) => {
+        if (!currentUser || !currentUser.uid) {
+            console.warn(
+                "log-event called without authenticated user. Local only."
+            );
+            return db.addLog(name, details, null);
         }
-        return "Not packaged";
+
+        console.log(
+            `Logging event "${name}" for UID: ${currentUser.uid}`
+        );
+
+        return db.addLog(name, details, currentUser.uid);
     });
+
+    ipcMain.handle("get-logs", () => db.getLogs());
+
+    ipcMain.handle("save-session", (_, key, val) =>
+        db.setSession(key, val)
+    );
+
+    ipcMain.handle("get-session", (_, key) =>
+        db.getSession(key)
+    );
+
+    ipcMain.handle("clear-data", () => db.clearData());
+
+    ipcMain.on("restart-app", () => autoUpdater.quitAndInstall());
 });
 
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+
+app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") {
+        app.quit();
+    }
 });
