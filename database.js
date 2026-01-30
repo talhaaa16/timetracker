@@ -1,21 +1,42 @@
-const Database = require('better-sqlite3');
-const path = require('path');
-const { app } = require('electron');
+const Database = require("better-sqlite3");
+const path = require("path");
+const { app } = require("electron");
 
-// Move the DB to the official AppData/Local folder to avoid permission issues
-// Use try/catch because 'app' might be undefined during certain tests
+/* ============================
+   FIREBASE ADMIN SDK (DESKTOP)
+   ============================ */
+const admin = require("firebase-admin");
+
+// 🔐 Load service account key
+const serviceAccount = require(
+  path.join(__dirname, "serviceAccountKey.json")
+);
+
+// Initialize Admin SDK (ONLY ONCE)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
+const firestore = admin.firestore();
+
+/* ============================
+   SQLITE SETUP
+   ============================ */
 let dbPath;
 try {
-  dbPath = path.join(app.getPath('userData'), 'punch_clock.db');
+  dbPath = path.join(app.getPath("userData"), "punch_clock.db");
 } catch (e) {
-  dbPath = 'punch_clock.db';
+  dbPath = "punch_clock.db";
 }
 
 const db = new Database(dbPath);
+db.pragma("journal_mode = WAL");
 
-// Optimization: Enable Write-Ahead Logging for better performance
-db.pragma('journal_mode = WAL');
-
+/* ============================
+   TABLES
+   ============================ */
 db.exec(`
   CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,6 +44,7 @@ db.exec(`
     details TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
   CREATE TABLE IF NOT EXISTS session (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -30,27 +52,70 @@ db.exec(`
 `);
 
 module.exports = {
-  addLog: (name, details = '') => {
-    const stmt = db.prepare("INSERT INTO logs (event_name, details, timestamp) VALUES (?, ?, ?)");
-    // Storing as ISO string is perfect for cross-platform apps
-    const info = stmt.run(name, details, new Date().toISOString());
-    return { id: info.lastInsertRowid, timestamp: new Date() };
+  /* ============================
+     ADD LOG (LOCAL + FIRESTORE)
+     ============================ */
+  addLog: async (name, details = "", uid = null) => {
+    const isoTimestamp = new Date().toISOString();
+
+    // 1️⃣ Save locally (SQLite)
+    const stmt = db.prepare(
+      "INSERT INTO logs (event_name, details, timestamp) VALUES (?, ?, ?)"
+    );
+    const info = stmt.run(name, details, isoTimestamp);
+
+    // 2️⃣ Save to Firestore (ADMIN SDK → bypass rules)
+    if (uid) {
+      try {
+        await firestore
+          .collection("users")
+          .doc(uid)
+          .collection("logs")
+          .add({
+            event_name: name,
+            details: details,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+        console.log("✔ Log synced to Firestore");
+      } catch (err) {
+        console.error("❌ Firestore sync failed:", err.message);
+      }
+    } else {
+      console.warn("⚠ No UID provided, Firestore sync skipped");
+    }
+
+    return { id: info.lastInsertRowid, timestamp: isoTimestamp };
   },
 
-  // Increased limit slightly for the "Logs" view
-  getLogs: () => db.prepare("SELECT * FROM logs ORDER BY id DESC LIMIT 100").all(),
+  /* ============================
+     READ LOCAL LOGS
+     ============================ */
+  getLogs: () => {
+    return db
+      .prepare("SELECT * FROM logs ORDER BY id DESC LIMIT 100")
+      .all();
+  },
 
-  setSession: (key, val) => db.prepare("INSERT OR REPLACE INTO session (key, value) VALUES (?, ?)").run(key, JSON.stringify(val)),
+  /* ============================
+     SESSION STORAGE
+     ============================ */
+  setSession: (key, val) => {
+    return db
+      .prepare("INSERT OR REPLACE INTO session (key, value) VALUES (?, ?)")
+      .run(key, JSON.stringify(val));
+  },
 
   getSession: (key) => {
-    const row = db.prepare("SELECT value FROM session WHERE key = ?").get(key);
+    const row = db
+      .prepare("SELECT value FROM session WHERE key = ?")
+      .get(key);
     return row ? JSON.parse(row.value) : null;
   },
 
   clearData: () => {
     db.prepare("DELETE FROM logs").run();
     db.prepare("DELETE FROM session").run();
-    // Vacuum cleans up the database file size after deletion
     db.prepare("VACUUM").run();
-  }
+  },
 };

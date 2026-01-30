@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --card-bg: #2d2d2d;
+            --accent-color: #007acc;
+            --text-primary: #cccccc;
+            --border-color: #3e3e3e;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .auth-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            width: 320px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        h2 {
+            text-align: center;
+            color: white;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: #1e1e1e;
+            border: 1px solid var(--border-color);
+            color: white;
+            border-radius: 4px;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+            outline: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+
+        .toggle-link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+            color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .toggle-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-card">
+        <h2 id="auth-title">Welcome Back</h2>
+
+        <div id="signup-fields" style="display:none;">
+            <input id="fname" placeholder="First Name">
+            <input id="lname" placeholder="Last Name">
+        </div>
+
+        <input id="email" placeholder="Email">
+        <input id="pass" type="password" placeholder="Password">
+
+        <button class="btn" id="auth-btn" onclick="startAuth()">Login</button>
+
+        <div class="toggle-link" onclick="toggleMode()">
+            New user? Create an account
+        </div>
+    </div>
+
+    <!-- Firebase (COMPAT – REQUIRED FOR ELECTRON) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Auth Logic -->
+    <script src="auth.js"></script>
+
+    <script>
+        async function startAuth() {
+            const btn = document.getElementById("auth-btn");
+            const oldText = btn.innerText;
+
+            btn.disabled = true;
+            btn.innerText = "Authenticating...";
+
+            try {
+                await handleAuth();
+            } catch (e) {
+                console.error("Firebase Auth Error:", e);
+
+                alert(
+                    e.code
+                        ? `Auth Error: ${e.code}\n${e.message}`
+                        : "Authentication failed"
+                );
+
+
+            } finally {
+                btn.disabled = false;
+                btn.innerText = oldText;
+            }
+        }
+    </script>
+</body>
+
+</html>
