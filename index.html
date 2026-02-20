@@ -325,8 +325,8 @@
         </div>
         <div class="nav-icon" onclick="switchView('logs')" title="Event Logs"><i class="fa-solid fa-list-ul"></i></div>
         <div style="flex:1"></div>
-        <div class="nav-icon" id="user-avatar" title="Profile"
-            style="color: var(--accent-color); font-weight: bold; font-size: 14px;">??</div>
+        <div class="nav-icon" onclick="switchView('mewurk')" title="Mewurk HRMS"><i class="fa-solid fa-building"></i>
+        </div>
         <div class="nav-icon" onclick="switchView('settings')" title="Settings"><i class="fa-solid fa-cog"></i></div>
     </div>
 
@@ -365,16 +365,26 @@
             <div class="grid-2">
                 <div class="card">
                     <div class="timer-label">Break (Daily Limit: 1h)</div>
-                    <div id="break-timer"
-                        style="font-size: 28px; font-family: var(--font-code); color: var(--text-primary); margin: 5px 0 15px 0;">
-                        60:00</div>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <div id="break-timer"
+                            style="font-size: 28px; font-family: var(--font-code); color: var(--text-primary); margin: 5px 0 15px 0;">
+                            60:00</div>
+                        <i class="fa-solid fa-pencil" onclick="editBreakTime()"
+                            style="cursor: pointer; font-size: 13px; color: var(--accent-color); opacity: 0.7; margin-bottom: 10px;"
+                            title="Edit break time"></i>
+                    </div>
                     <button id="break-btn" class="btn btn-outline" style="width:100%" onclick="toggleBreak()"><i
                             class="fa-solid fa-mug-hot"></i> Take Break</button>
                 </div>
                 <div class="card">
                     <div class="timer-label">Session Stats</div>
                     <div style="margin-top:10px; font-size:13px; color:var(--text-secondary); margin-bottom:15px;">
-                        <div>In: <span id="punch-in-time" style="color:#fff">--:--</span></div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            In: <span id="punch-in-time" style="color:#fff">--:--</span>
+                            <i class="fa-solid fa-pencil" onclick="editPunchInTime()"
+                                style="cursor: pointer; font-size: 11px; color: var(--accent-color); opacity: 0.7;"
+                                title="Edit punch-in time"></i>
+                        </div>
                         <div style="margin-top:5px;">State: <span id="status-text"
                                 style="color: var(--success-color)">Working</span></div>
                     </div>
@@ -448,7 +458,7 @@
             <div class="card">
                 <div class="timer-label">About</div>
                 <div style="margin-top:10px; font-size:13px; color:var(--text-secondary);">
-                    <p><strong>Timetracker Dev Edition</strong> v1.0.6</p>
+                    <p><strong>Timetracker Dev Edition</strong> v1.0.10</p>
                     <p style="margin-top:5px; color:var(--accent-color);">Built by Talha Shaikh</p>
                 </div>
             </div>
@@ -460,9 +470,130 @@
             </div>
         </div>
 
+        <!-- Mewurk HRMS View -->
+        <div id="view-mewurk" class="view-section">
+            <div id="mewurk-container" style="padding: 0 20px;">
+                <!-- Login View -->
+                <div id="mewurk-login-view">
+                    <div class="header-title" style="margin-bottom: 32px;"><i class="fa-solid fa-building"></i> Mewurk
+                        HRMS</div>
+
+                    <div class="card" style="max-width: 500px; margin: 0 auto;">
+                        <div id="mewurk-error-message" class="error"
+                            style="display: none; background: rgba(244, 135, 113, 0.1); border: 1px solid var(--danger-color); padding: 12px; border-radius: 6px; color: var(--danger-color); margin-bottom: 16px; font-size: 13px;">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label
+                                style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;">Email
+                                / Username</label>
+                            <input type="text" id="mewurk-email-input" placeholder="your.email@company.com"
+                                style="width: 100%; padding: 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                        </div>
+
+                        <div style="margin-bottom: 24px;">
+                            <label
+                                style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;">Password</label>
+                            <input type="password" id="mewurk-password-input" placeholder="Enter your password"
+                                style="width: 100%; padding: 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                        </div>
+
+                        <button id="mewurk-login-btn" class="btn"
+                            style="width: 100%; padding: 14px; font-size: 14px; font-weight: 600;"
+                            onclick="loginToMewurk()">
+                            <i class="fa-solid fa-sign-in-alt"></i> Login to Mewurk
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard View (shown after login) -->
+                <div id="mewurk-dashboard-view" style="display: none;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
+                        <div class="header-title"><i class="fa-solid fa-building"></i> Mewurk HRMS</div>
+                        <button class="btn btn-danger" style="padding: 10px 20px; width: auto; font-size: 13px;"
+                            onclick="logoutFromMewurk()">
+                            <i class="fa-solid fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+
+                    <div style="margin-bottom: 32px;">
+                        <h2 id="mewurk-user-name" style="font-size: 24px; margin-bottom: 6px; font-weight: 600;">
+                            Loading...</h2>
+                        <p id="mewurk-user-email" style="font-size: 14px; color: var(--text-secondary);"></p>
+                    </div>
+
+                    <!-- Monthly Stats -->
+                    <div class="card" style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 600;">Monthly Overview</h3>
+                        <div id="mewurk-stats-grid"
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading
+                                stats...</div>
+                        </div>
+                    </div>
+
+                    <!-- Today's Attendance -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 600;">Today's Attendance</h3>
+                        <div id="mewurk-attendance-container">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading
+                                attendance...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="custom-modal"
+            style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); z-index: 1000; align-items: center; justify-content: center; animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+            <div class="card"
+                style="width: 400px; max-width: 90%; background: #2a2a2a; border: 1px solid rgba(0, 122, 204, 0.3); position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.6); padding: 30px; border-radius: 12px;">
+                <button onclick="closeModal()" title="Close"
+                    style="position: absolute; top: 20px; right: 20px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 20px; transition: color 0.2s; padding: 5px; line-height: 1;"
+                    onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-secondary)'">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <h3 id="modal-title"
+                    style="margin-top: 0; margin-bottom: 25px; color: #fff; font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-pen-to-square" style="color: var(--accent-color);"></i>
+                    <span>Edit Value</span>
+                </h3>
+
+                <p id="modal-desc"
+                    style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500;"></p>
+
+                <div style="margin-bottom: 5px;">
+                    <input type="number" id="modal-input"
+                        style="width: 100%; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 2px solid #3d3d3d; color: #fff; border-radius: 8px; font-size: 24px; text-align: center; font-family: var(--font-code); outline: none; transition: all 0.2s; box-sizing: border-box;"
+                        onfocus="this.style.borderColor='var(--accent-color)'; this.style.background='rgba(0,0,0,0.4)'; this.style.boxShadow='0 0 0 3px rgba(0,122,204,0.2)'"
+                        onblur="this.style.borderColor='#3d3d3d'; this.style.background='rgba(0,0,0,0.3)'; this.style.boxShadow='none'">
+                </div>
+                <div id="modal-input-label"
+                    style="text-align: center; font-size: 12px; color: var(--text-secondary); margin-bottom: 25px; display: none;">
+                    Minutes</div>
+
+                <div id="modal-buttons-standard" style="display: flex; gap: 15px; justify-content: stretch;">
+                    <button class="btn btn-outline" onclick="closeModal()"
+                        style="flex: 1; padding: 12px; font-weight: 600; border-radius: 8px; font-size: 14px; background: rgba(255,255,255,0.05);">Cancel</button>
+                    <button class="btn" id="modal-confirm-btn"
+                        style="flex: 1; padding: 12px; font-weight: 600; border-radius: 8px; font-size: 14px; background: var(--accent-color); box-shadow: 0 4px 12px rgba(0,122,204,0.3);">Save
+                        Changes</button>
+                </div>
+
+                <div id="modal-buttons-break" style="display: none; gap: 15px; justify-content: stretch;">
+                    <button class="btn btn-outline" onclick="closeModal()"
+                        style="flex: 1; padding: 12px; font-weight: 600; border-radius: 8px; font-size: 14px; background: rgba(255,255,255,0.05);">Cancel</button>
+                    <button class="btn btn-danger" id="modal-reduce-btn"
+                        style="flex: 1; padding: 12px; font-weight: 600; border-radius: 8px; font-size: 14px; background: #ab3939; box-shadow: 0 4px 12px rgba(171,57,57,0.3);">Reduce</button>
+                    <button class="btn btn-success" id="modal-add-btn"
+                        style="flex: 1; padding: 12px; font-weight: 600; border-radius: 8px; font-size: 14px; background: #3c7d3c; color: white; box-shadow: 0 4px 12px rgba(60,125,60,0.3);">Add</button>
+                </div>
+            </div>
+        </div>
         <div id="toast" class="toast">Action Completed</div>
         <div class="status-bar"><span id="status-bar-msg">Ready</span><span><i class="fa-brands fa-electron"></i>
-                Timetracker v1.0.6</span></div>
+                Timetracker v1.0.10</span></div>
     </div>
 
     <script>
@@ -485,7 +616,6 @@
             // 1. Load User Profile via the API bridge
             const user = await api.invoke('get-user-profile');
             if (user) {
-                document.getElementById('user-avatar').innerText = user.firstName[0].toUpperCase() + (user.lastName ? user.lastName[0].toUpperCase() : "");
                 document.getElementById('welcome-msg').innerText = `Welcome back, ${user.firstName}`;
                 document.getElementById('settings-name').innerText = `${user.firstName} ${user.lastName}`;
                 document.getElementById('settings-email').innerText = user.email;
@@ -609,10 +739,12 @@
                 state.lastBreakStartTime = new Date();
                 logEvent('BREAK_START');
             } else {
+                const durationMs = (new Date() - state.lastBreakStartTime);
+                const durationMins = Math.round(durationMs / 60000);
                 state.breakActive = false;
-                state.totalBreakTaken += (new Date() - state.lastBreakStartTime);
+                state.totalBreakTaken += durationMs;
                 state.lastBreakStartTime = null;
-                logEvent('BREAK_END');
+                logEvent('BREAK_END', `${durationMins}m`);
             }
             updateUIState();
             saveState();
@@ -650,7 +782,154 @@
             if (viewName === 'dashboard') icons[0].classList.add('active');
             if (viewName === 'scratchpad') icons[1].classList.add('active');
             if (viewName === 'logs') icons[2].classList.add('active');
-            if (viewName === 'settings') icons[5].classList.add('active');
+            if (viewName === 'mewurk') icons[3].classList.add('active'); // Mewurk icon
+            if (viewName === 'settings') icons[4].classList.add('active'); // Settings icon
+        }
+
+        let currentModalCallback = null;
+
+        function openModal(title, description, currentValue, callback, mode = 'standard') {
+            const modal = document.getElementById('custom-modal');
+            const input = document.getElementById('modal-input');
+            const label = document.getElementById('modal-input-label');
+            const stdButtons = document.getElementById('modal-buttons-standard');
+            const breakButtons = document.getElementById('modal-buttons-break');
+
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = description;
+            input.value = currentValue;
+
+            if (mode === 'break') {
+                stdButtons.style.display = 'none';
+                breakButtons.style.display = 'flex';
+                label.style.display = 'block';
+                input.type = 'number';
+            } else {
+                stdButtons.style.display = 'flex';
+                breakButtons.style.display = 'none';
+                label.style.display = 'none';
+                input.type = 'text';
+            }
+
+            // Store the action to perform when clicking Save
+            currentModalCallback = callback;
+
+            modal.style.display = 'flex';
+            input.focus();
+
+            // Handle Enter key in input
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    if (mode === 'standard') confirmModal();
+                    // In break mode, Enter key doesn't have a single default confirm action
+                }
+                if (e.key === 'Escape') closeModal();
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').style.display = 'none';
+            currentModalCallback = null;
+        }
+
+        function confirmModal() {
+            const val = document.getElementById('modal-input').value;
+            if (currentModalCallback) {
+                currentModalCallback(val);
+            }
+            closeModal();
+        }
+
+        // Attach click listener to the Save button
+        document.getElementById('modal-confirm-btn').onclick = confirmModal;
+
+        function editPunchInTime() {
+            if (!state.isActive) {
+                showToast("No active session to edit");
+                return;
+            }
+
+            const currentTime = state.punchInTime instanceof Date
+                ? state.punchInTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                : new Date(state.punchInTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+            openModal(
+                "Edit Punch In",
+                "Enter new time (HH:MM 24-hour format):",
+                currentTime,
+                (newTime) => {
+                    if (newTime && newTime.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+                        const [hours, minutes] = newTime.split(':').map(Number);
+                        const punchDate = state.punchInTime instanceof Date ? state.punchInTime : new Date(state.punchInTime);
+                        const newPunchIn = new Date(punchDate.getFullYear(), punchDate.getMonth(), punchDate.getDate(), hours, minutes, 0);
+
+                        state.punchInTime = newPunchIn;
+                        saveState();
+                        updateDashboard();
+                        document.getElementById('punch-in-time').innerText = newPunchIn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        showToast("Punch-in time updated!");
+                        logEvent('EDIT_TIME', `Changed punch-in to ${newTime}`);
+                    } else {
+                        showToast("Invalid time format. Use HH:MM");
+                    }
+                }
+            );
+        }
+
+        function editBreakTime() {
+            if (!state.isActive) {
+                showToast("No active session to edit");
+                return;
+            }
+
+            openModal(
+                "MANAGE BREAK TIME",
+                "Add or reduce total break limit (approximate):",
+                0,
+                null,
+                'break'
+            );
+
+            // Specialized handlers for Add/Reduce buttons
+            document.getElementById('modal-add-btn').onclick = () => {
+                const amount = parseInt(document.getElementById('modal-input').value) || 0;
+                if (amount <= 0) {
+                    showToast("Please enter a valid amount");
+                    return;
+                }
+
+                // Add manually = Increase total break taken (decreases remaining time)
+                state.totalBreakTaken += (amount * 60000);
+                const maxBreak = 60 * 60000;
+                if (state.totalBreakTaken > maxBreak) state.totalBreakTaken = maxBreak;
+
+                finishBreakEdit(`Manually added ${amount}m to break taken`);
+            };
+
+            document.getElementById('modal-reduce-btn').onclick = () => {
+                const amount = parseInt(document.getElementById('modal-input').value) || 0;
+                if (amount <= 0) {
+                    showToast("Please enter a valid amount");
+                    return;
+                }
+
+                // Reduce manually = Decrease total break taken (increases remaining time)
+                state.totalBreakTaken -= (amount * 60000);
+                if (state.totalBreakTaken < 0) state.totalBreakTaken = 0;
+
+                finishBreakEdit(`Reduced break taken by ${amount}m`);
+            };
+
+            function finishBreakEdit(logMsg) {
+                if (state.breakActive) {
+                    state.lastBreakStartTime = new Date();
+                }
+                saveState();
+                updateDashboard();
+                showToast("Break time adjusted!");
+                logEvent('EDIT_BREAK', logMsg);
+                closeModal();
+            }
         }
 
         // API Bridge Wrappers
@@ -767,6 +1046,569 @@
                 console.error("Sync error:", e);
             }
             setTimeout(() => { if (icon) icon.classList.remove('sync-spinning') }, 1000);
+        }
+
+        // ==================== MEWURK INTEGRATION ====================
+        let mewurkState = {
+            isConnected: false,
+            employeeId: null,
+            autoSync: false,
+            lastSyncTime: null
+        };
+
+        // Load Mewurk state on startup
+        window.addEventListener('load', async () => {
+            try {
+                const savedMewurkState = await api.invoke('get-session', 'mewurk-state');
+                if (savedMewurkState) {
+                    mewurkState = savedMewurkState;
+                    if (mewurkState.isConnected) {
+                        updateMewurkUI(true);
+                    }
+                }
+            } catch (e) {
+                console.error("Mewurk state load error:", e);
+            }
+        });
+
+        async function connectToMewurk() {
+            const employeeId = document.getElementById('mewurk-employee-id').value.trim();
+            const password = document.getElementById('mewurk-password').value;
+
+            if (!employeeId || !password) {
+                showToast("Please enter both Employee ID and Password");
+                return;
+            }
+
+            const connectBtn = document.getElementById('mewurk-connect-btn');
+            connectBtn.disabled = true;
+            connectBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting...';
+
+            try {
+                // Attempt to authenticate with Mewurk
+                console.log('Attempting Mewurk login for Employee ID:', employeeId);
+
+                const response = await fetch('https://app.mewurk.com/api/v1/userservice/account/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userName: employeeId,
+                        password: password,
+                        otp: null
+                    })
+                });
+
+                console.log('Mewurk API response status:', response.status, response.statusText);
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Save connection state
+                    mewurkState.isConnected = true;
+                    mewurkState.employeeId = employeeId;
+                    mewurkState.token = data.token || null;
+
+                    await api.invoke('save-session', 'mewurk-state', mewurkState);
+                    await api.invoke('save-session', 'mewurk-credentials', { employeeId, password });
+
+                    updateMewurkUI(true);
+                    showToast("✓ Connected to Mewurk successfully!");
+
+                    // Clear password field
+                    document.getElementById('mewurk-password').value = '';
+                } else {
+                    const errorText = await response.text();
+                    console.error('Mewurk authentication failed:', response.status, errorText);
+                    throw new Error(`Authentication failed: ${response.status} - ${errorText.substring(0, 100)}`);
+                }
+            } catch (error) {
+                console.error("Mewurk connection error:", error);
+                showToast("⚠ Connection failed. Please check credentials.");
+                connectBtn.disabled = false;
+                connectBtn.innerHTML = '<i class="fa-solid fa-plug"></i> Connect to Mewurk';
+            }
+        }
+
+        async function disconnectMewurk() {
+            if (confirm("Are you sure you want to disconnect from Mewurk?")) {
+                mewurkState = {
+                    isConnected: false,
+                    employeeId: null,
+                    autoSync: false,
+                    lastSyncTime: null
+                };
+
+                await api.invoke('save-session', 'mewurk-state', mewurkState);
+                await api.invoke('save-session', 'mewurk-credentials', null);
+
+                updateMewurkUI(false);
+                showToast("Disconnected from Mewurk");
+
+                // Clear form
+                document.getElementById('mewurk-employee-id').value = '';
+                document.getElementById('mewurk-password').value = '';
+            }
+        }
+
+        async function syncToMewurk() {
+            if (!mewurkState.isConnected) {
+                showToast("Not connected to Mewurk");
+                return;
+            }
+
+            const syncIcon = document.getElementById('sync-mewurk-icon');
+            syncIcon.classList.add('fa-spin');
+
+            try {
+                // Get today's logs
+                const logs = await api.invoke('get-logs');
+                const today = new Date().toDateString();
+                const todayLogs = logs.filter(log => new Date(log.timestamp).toDateString() === today);
+
+                if (todayLogs.length === 0) {
+                    showToast("No activities to sync for today");
+                    syncIcon.classList.remove('fa-spin');
+                    return;
+                }
+
+                // Prepare data for Mewurk
+                const punchInLog = todayLogs.find(log => log.event_name === 'PUNCH_IN');
+                const endDayLog = todayLogs.find(log => log.event_name === 'END_DAY');
+
+                const breaks = [];
+                for (let i = 0; i < todayLogs.length; i++) {
+                    if (todayLogs[i].event_name === 'BREAK_START' && todayLogs[i + 1]?.event_name === 'BREAK_END') {
+                        breaks.push({
+                            start: new Date(todayLogs[i].timestamp).toLocaleTimeString('en-US', { hour12: false }),
+                            end: new Date(todayLogs[i + 1].timestamp).toLocaleTimeString('en-US', { hour12: false })
+                        });
+                    }
+                }
+
+                const syncData = {
+                    employeeId: mewurkState.employeeId,
+                    date: new Date().toISOString().split('T')[0],
+                    punchIn: punchInLog ? new Date(punchInLog.timestamp).toLocaleTimeString('en-US', { hour12: false }) : null,
+                    punchOut: endDayLog ? new Date(endDayLog.timestamp).toLocaleTimeString('en-US', { hour12: false }) : null,
+                    breaks: breaks,
+                    activities: todayLogs.map(log => ({
+                        time: new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false }),
+                        type: log.event_name,
+                        details: log.details || ''
+                    }))
+                };
+
+                // Send to Mewurk API (Note: endpoint may need adjustment based on actual API)
+                const response = await fetch('https://app.mewurk.com/api/v1/attendance/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${mewurkState.token || ''}`
+                    },
+                    body: JSON.stringify(syncData)
+                });
+
+                if (response.ok) {
+                    mewurkState.lastSyncTime = new Date().toISOString();
+                    await api.invoke('save-session', 'mewurk-state', mewurkState);
+
+                    // Add to sync history
+                    addSyncHistory(true, todayLogs.length);
+                    updateMewurkUI(true);
+
+                    showToast(`✓ Synced ${todayLogs.length} activities to Mewurk`);
+                } else {
+                    throw new Error('Sync failed');
+                }
+            } catch (error) {
+                console.error("Mewurk sync error:", error);
+                addSyncHistory(false, 0, error.message);
+                showToast("⚠ Sync failed. Check connection.");
+            } finally {
+                syncIcon.classList.remove('fa-spin');
+            }
+        }
+
+        async function toggleAutoSync(enabled) {
+            mewurkState.autoSync = enabled;
+            await api.invoke('save-session', 'mewurk-state', mewurkState);
+            showToast(enabled ? "Auto-sync enabled" : "Auto-sync disabled");
+        }
+
+        function updateMewurkUI(connected) {
+            const statusContainer = document.getElementById('mewurk-status-container');
+            const form = document.getElementById('mewurk-form');
+            const syncControls = document.getElementById('mewurk-sync-controls');
+            const syncHistory = document.getElementById('mewurk-sync-history');
+            const statusIcon = document.getElementById('mewurk-status-icon');
+            const statusText = document.getElementById('mewurk-status-text');
+            const employeeInfo = document.getElementById('mewurk-employee-info');
+            const lastSync = document.getElementById('mewurk-last-sync');
+            const autoSyncCheckbox = document.getElementById('mewurk-auto-sync');
+
+            if (connected) {
+                statusContainer.style.display = 'block';
+                form.style.display = 'none';
+                syncControls.style.display = 'block';
+                syncHistory.style.display = 'block';
+
+                statusIcon.className = 'fa-solid fa-circle-check';
+                statusIcon.style.color = '#4CAF50';
+                statusText.innerText = 'Connected';
+                statusText.style.color = '#4CAF50';
+                statusContainer.style.background = 'rgba(76, 175, 80, 0.1)';
+
+                employeeInfo.innerText = `Employee ID: ${mewurkState.employeeId}`;
+
+                if (mewurkState.lastSyncTime) {
+                    const syncDate = new Date(mewurkState.lastSyncTime);
+                    lastSync.innerText = `Last synced: ${syncDate.toLocaleString()}`;
+                } else {
+                    lastSync.innerText = 'Never synced';
+                }
+
+                autoSyncCheckbox.checked = mewurkState.autoSync || false;
+            } else {
+                statusContainer.style.display = 'none';
+                form.style.display = 'block';
+                syncControls.style.display = 'none';
+                syncHistory.style.display = 'none';
+            }
+        }
+
+        function addSyncHistory(success, count, error = null) {
+            const historyList = document.getElementById('mewurk-history-list');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.style.padding = '4px 0';
+            entry.style.borderBottom = '1px solid var(--border-color)';
+
+            if (success) {
+                entry.innerHTML = `<span style="color:#4CAF50;">✓</span> ${timestamp} - Synced ${count} activities`;
+            } else {
+                entry.innerHTML = `<span style="color:#f48771;">✗</span> ${timestamp} - Failed: ${error || 'Unknown error'}`;
+            }
+
+            historyList.insertBefore(entry, historyList.firstChild);
+
+            // Keep only last 5 entries
+            while (historyList.children.length > 5) {
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+
+        // Auto-sync on End Day if enabled
+        const originalEndDay = endDay;
+        endDay = async function () {
+            await originalEndDay();
+
+            if (mewurkState.isConnected && mewurkState.autoSync) {
+                setTimeout(() => {
+                    syncToMewurk();
+                }, 1000);
+            }
+        };
+
+        // ==================== NEW MEWURK INTEGRATION ====================
+        var mewurkData = {
+            isLoggedIn: false,
+            token: null,
+            refreshToken: null,
+            userModel: null,
+            tenantId: null,
+            email: null
+        };
+
+        // Load saved Mewurk session on startup
+        window.addEventListener('load', async () => {
+            try {
+                const saved = await api.invoke('get-session', 'mewurk-data');
+                if (saved && saved.isLoggedIn) {
+                    mewurkData = saved;
+                    showMewurkDashboard();
+                }
+            } catch (e) {
+                console.error('Failed to load Mewurk session:', e);
+            }
+        });
+
+        async function loginToMewurk() {
+            const email = document.getElementById('mewurk-email-input').value.trim();
+            const password = document.getElementById('mewurk-password-input').value;
+            const errorDiv = document.getElementById('mewurk-error-message');
+            const loginBtn = document.getElementById('mewurk-login-btn');
+
+            errorDiv.style.display = 'none';
+
+            if (!email || !password) {
+                showMewurkError('Please enter both email and password');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging in...';
+
+            try {
+                // Step 1: Lookup user to get tenantId
+                console.log('Looking up user:', email);
+                const lookupResponse = await fetch(`https://app.mewurk.com/api/v1/userservice/account/lookup?userName=${encodeURIComponent(email)}`, {
+                    method: 'GET',
+                    headers: {
+                        'accept': 'application/json',
+                        'content-type': 'application/json'
+                    }
+                });
+
+                if (!lookupResponse.ok) {
+                    throw new Error('User lookup failed. Please check your email.');
+                }
+
+                const lookupData = await lookupResponse.json();
+                console.log('Lookup response:', lookupData);
+
+                if (!lookupData.isSuccess || !lookupData.data.tenantDetails || lookupData.data.tenantDetails.length === 0) {
+                    throw new Error('No tenant found for this user');
+                }
+
+                const tenantId = lookupData.data.tenantDetails[0].tenantId;
+                console.log('Tenant ID:', tenantId);
+
+                // Step 2: Login with base64 encoded userName
+                const rawUserName = `${email}|${tenantId}`;
+                const encodedUserName = btoa(rawUserName);
+
+                console.log('Logging in with encoded userName');
+                const loginResponse = await fetch('https://app.mewurk.com/api/v1/userservice/account/login', {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userName: encodedUserName,
+                        password: password,
+                        otp: null
+                    })
+                });
+
+                if (!loginResponse.ok) {
+                    const errorText = await loginResponse.text();
+                    console.error('Login failed:', errorText);
+                    throw new Error('Login failed. Please check your password.');
+                }
+
+                const loginData = await loginResponse.json();
+                console.log('Login successful:', loginData);
+
+                if (!loginData.isSuccess) {
+                    throw new Error(loginData.message || 'Login failed');
+                }
+
+                // Save session
+                mewurkData = {
+                    isLoggedIn: true,
+                    token: loginData.data.token,
+                    refreshToken: loginData.data.refreshToken,
+                    userModel: loginData.data.userModel,
+                    tenantId: tenantId,
+                    email: email
+                };
+
+                await api.invoke('save-session', 'mewurk-data', mewurkData);
+
+                // Show dashboard
+                showMewurkDashboard();
+
+            } catch (error) {
+                console.error('Mewurk login error:', error);
+                showMewurkError(error.message || 'Login failed. Please try again.');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fa-solid fa-sign-in-alt"></i> Login to Mewurk';
+            }
+        }
+
+        async function showMewurkDashboard() {
+            document.getElementById('mewurk-login-view').style.display = 'none';
+            document.getElementById('mewurk-dashboard-view').style.display = 'block';
+
+            // Display user info
+            const userName = `${mewurkData.userModel.firstName} ${mewurkData.userModel.lastName}`;
+            document.getElementById('mewurk-user-name').textContent = userName;
+            document.getElementById('mewurk-user-email').textContent = mewurkData.email || mewurkData.userModel.email;
+
+            // Load monthly stats
+            await loadMewurkMonthlyStats();
+
+            // Load today's attendance
+            await loadMewurkTodayAttendance();
+        }
+
+        async function loadMewurkMonthlyStats() {
+            const statsGrid = document.getElementById('mewurk-stats-grid');
+            statsGrid.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading stats...</div>';
+
+            try {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1;
+
+                const response = await fetch('https://app.mewurk.com/api/v1/attendanceservice/attendance/carddetails', {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'authorization': `Bearer ${mewurkData.token}`,
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        employeeCode: Number(mewurkData.userModel.employeeCode),
+                        year: year,
+                        month: month
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to load stats');
+
+                const data = await response.json();
+                console.log('Card details:', data);
+
+                if (data.isSuccess && data.data.cardDetails) {
+                    const details = data.data.cardDetails;
+                    statsGrid.innerHTML = `
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Present Days</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #4CAF50;">${details.present.totalPresent}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Leaves: ${details.present.totalLeave} | Offs: ${details.present.totalWeeklyOff}</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid #F44336;">
+                            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Absence & Late</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #F44336;">${details.absent.totalAbsent}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Late In: ${details.absent.totalLateIn} | Early Out: ${details.absent.totalEarlyOut}</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid var(--accent-color);">
+                            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Working Hours</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${details.workingHours.total.toFixed(1)}h</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Avg: ${details.workingHours.dayAvg.toFixed(1)}h / day</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid #FF9800;">
+                            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Regularization</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #FF9800;">${details.regularize.totalRegularize}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Holidays: ${details.present.totalHoliday}</div>
+                        </div>
+                    `;
+                } else {
+                    statsGrid.innerHTML = '<div style="color: var(--danger-color); text-align: center; padding: 20px;">Failed to load stats</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+                statsGrid.innerHTML = '<div style="color: var(--danger-color); text-align: center; padding: 20px;">Failed to load stats</div>';
+            }
+        }
+
+        async function loadMewurkTodayAttendance() {
+            const container = document.getElementById('mewurk-attendance-container');
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading attendance...</div>';
+
+            try {
+                const today = new Date().toISOString().split('T')[0];
+
+                const response = await fetch('https://app.mewurk.com/api/v1/attendanceservice/attendancelogs/clockindetails', {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'authorization': `Bearer ${mewurkData.token}`,
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        employeeCode: Number(mewurkData.userModel.employeeCode),
+                        clockDate: today
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to load attendance');
+
+                const data = await response.json();
+                if (data.isSuccess && data.data) {
+                    const logs = data.data.clockInDetails || [];
+                    const shift = data.data.attendanceConfigurationViewModel;
+
+                    let html = '';
+
+                    // Add Shift Info Header if available
+                    if (shift) {
+                        html += `
+                            <div style="background: rgba(0, 122, 204, 0.1); border: 1px solid rgba(0, 122, 204, 0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Today's Shift</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: white;">${shift.shiftName || 'Standard'}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Timing</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: var(--accent-color);">${shift.shiftInTime} - ${shift.shiftOutTime}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    if (logs.length > 0) {
+                        logs.forEach(log => {
+                            const badgeColor = log.inOutType === 'IN' ? 'var(--success-color)' : 'var(--danger-color)';
+                            const badgeBg = log.inOutType === 'IN' ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 135, 113, 0.2)';
+                            html += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${badgeColor};">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: ${badgeBg}; display: flex; align-items: center; justify-content: center; color: ${badgeColor};">
+                                            <i class="fa-solid fa-${log.inOutType === 'IN' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-size: 14px; font-weight: 600; color: white;">${log.clockTime}</div>
+                                            <div style="font-size: 11px; color: var(--text-secondary);">${log.inOutType} ${log.isAutoPunch ? '(Auto)' : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 12px; color: var(--text-primary);">${log.deviceName || log.sourceName || 'Web'}</div>
+                                        <div style="font-size: 10px; color: var(--text-secondary);">${log.locationName || ''}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = (html || '') + '<div style="text-align: center; padding: 40px; color: var(--text-secondary); background: var(--bg-secondary); border-radius: 8px;">No clocking records for today.</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load attendance:', error);
+                container.innerHTML = '<div style="color: var(--danger-color); text-align: center; padding: 20px;">Failed to load attendance</div>';
+            }
+        }
+
+        async function logoutFromMewurk() {
+            if (confirm('Are you sure you want to logout from Mewurk?')) {
+                mewurkData = {
+                    isLoggedIn: false,
+                    token: null,
+                    refreshToken: null,
+                    userModel: null,
+                    tenantId: null,
+                    email: null
+                };
+
+                await api.invoke('save-session', 'mewurk-data', mewurkData);
+
+                document.getElementById('mewurk-dashboard-view').style.display = 'none';
+                document.getElementById('mewurk-login-view').style.display = 'block';
+                document.getElementById('mewurk-email-input').value = '';
+                document.getElementById('mewurk-password-input').value = '';
+            }
+        }
+
+        function showMewurkError(message) {
+            const errorDiv = document.getElementById('mewurk-error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
         }
     </script>
 </body>
