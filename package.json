@@ -39,7 +39,11 @@
         "ignore": [
           "/out($|/)",
           "/.git($|/)",
-          "/.vscode($|/)"
+          "/.vscode($|/)",
+          "/timetracker_mobile($|/)",
+          "/node_modules/.bin($|/)",
+          "README.md",
+          ".gitignore"
         ]
       },
       "makers": [
