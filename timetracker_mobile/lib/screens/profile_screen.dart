@@ -47,7 +47,12 @@ class ProfileScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white.withOpacity(0.1), width: 2),
                     ),
-                    child: const Icon(Icons.person, size: 45, color: Colors.white),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/logo.jpg',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Text(
