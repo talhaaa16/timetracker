@@ -187,7 +187,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 title: Text(log.eventName.replaceAll('_', ' '), style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: log.details.isNotEmpty ? Text(log.details) : null,
                 trailing: Text(
-                  DateFormat('hh:mm a').format(log.timestamp),
+                  DateFormat('H:mm').format(log.timestamp),
                   style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                 ),
               ),

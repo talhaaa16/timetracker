@@ -169,7 +169,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ? Text(log.details, style: TextStyle(color: Colors.grey[400], fontSize: 13, fontWeight: FontWeight.w500))
                                   : null,
                               trailing: Text(
-                                DateFormat('hh:mm a').format(log.timestamp),
+                                DateFormat('H:mm').format(log.timestamp), // 24h format (e.g. 8:19)
                                 style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -190,23 +190,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
     DateTime? punchIn;
     DateTime? endDay;
     int totalBreakMs = 0;
-    DateTime? breakStart;
+    DateTime? lastBreakStart;
+    DateTime? lastOutTime;
 
     // Process from oldest to newest for temporal logic
     final cronLogs = logs.reversed.toList();
 
     for (var log in cronLogs) {
-      if (log.eventName == 'PUNCH_IN' && punchIn == null) {
-        punchIn = log.timestamp;
-      } else if (log.eventName == 'END_DAY') {
+      final event = log.eventName.toUpperCase();
+      
+      if (event == 'PUNCH_IN' || event == 'RESUME_WORK' || event == 'IN') {
+        if (punchIn == null) punchIn = log.timestamp;
+        
+        // If we were "OUT" (Mewurk style break), count gap as break
+        if (lastOutTime != null) {
+          totalBreakMs += log.timestamp.difference(lastOutTime).inMilliseconds;
+          lastOutTime = null;
+        }
+        // If we were on specific break
+        if (lastBreakStart != null) {
+          totalBreakMs += log.timestamp.difference(lastBreakStart).inMilliseconds;
+          lastBreakStart = null;
+        }
+      } else if (event == 'END_DAY') {
         endDay = log.timestamp;
       } else if (log.eventName == 'BREAK_START') {
         breakStart = log.timestamp;
-      } else if (log.eventName == 'BREAK_END' && breakStart != null) {
-        totalBreakMs += log.timestamp.difference(breakStart).inMilliseconds;
+      } else if (log.eventName == 'BREAK_END') {
+        // Try to parse duration from details first (most accurate)
+        final mins = _extractMinutes(log.details);
+        if (mins > 0) {
+          totalBreakMs += mins * 60000;
+        } else if (breakStart != null) {
+          // Fallback to timestamp difference
+          totalBreakMs += log.timestamp.difference(breakStart).inMilliseconds;
+        }
         breakStart = null;
+      } else if (log.eventName == 'EDIT_BREAK') {
+        final mins = _extractMinutes(log.details);
+        if (log.details.contains('added')) {
+          totalBreakMs += mins * 60000;
+        } else if (log.details.contains('Reduced')) {
+          totalBreakMs -= mins * 60000;
+        }
       }
     }
+
+    // Ensure break time doesn't go negative
+    if (totalBreakMs < 0) totalBreakMs = 0;
 
     // If still on break, add time until now
     if (breakStart != null && _isSameDay(breakStart, DateTime.now())) {
@@ -216,15 +247,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Work duration: from punch in until (end day OR now)
     int totalWorkMs = 0;
     if (punchIn != null) {
-      final endTime = endDay ?? (_isSameDay(punchIn, DateTime.now()) ? DateTime.now() : punchIn.add(const Duration(hours: 8)));
+      final endTime = endDay ?? (_isSameDay(punchIn, now) ? now : punchIn.add(const Duration(hours: 8)));
       totalWorkMs = endTime.difference(punchIn).inMilliseconds - totalBreakMs;
       if (totalWorkMs < 0) totalWorkMs = 0;
     }
 
     return {
       'work': _formatDuration(totalWorkMs),
-      'break': _formatDuration(totalBreakMs.toInt()),
+      'break': _formatDuration(totalBreakMs),
     };
+  }
+
+  int _extractMinutes(String details) {
+    final regExp = RegExp(r'(\d+)m');
+    final match = regExp.firstMatch(details);
+    if (match != null) {
+      return int.tryParse(match.group(1)!) ?? 0;
+    }
+    return 0;
   }
 
   String _formatDuration(int ms) {
@@ -278,6 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'PUNCH_IN': return {'icon': Icons.login_rounded, 'color': const Color(0xFF48bb78)};
       case 'BREAK_START': return {'icon': Icons.coffee_rounded, 'color': const Color(0xFFf56565)};
       case 'BREAK_END': return {'icon': Icons.play_arrow_rounded, 'color': const Color(0xFF4fc1ff)};
+      case 'EDIT_BREAK': return {'icon': Icons.edit_calendar_rounded, 'color': const Color(0xFFb5cea8)};
       case 'END_DAY': return {'icon': Icons.flag_rounded, 'color': const Color(0xFFed8936)};
       case 'RESUME_WORK': return {'icon': Icons.work_rounded, 'color': const Color(0xFFb5cea8)};
       case 'Meeting': return {'icon': Icons.people_rounded, 'color': const Color(0xFFce9178)};
