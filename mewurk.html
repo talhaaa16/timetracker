@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mewurk HRMS - Timetracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -45,11 +46,6 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        .header h1 {
-            font-size: 24px;
-            font-weight: 600;
-        }
-
         .card {
             background: var(--card-bg);
             backdrop-filter: blur(10px);
@@ -85,11 +81,6 @@
             font-size: 14px;
         }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-
         .btn {
             width: 100%;
             padding: 12px;
@@ -100,17 +91,12 @@
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.2s;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
+            opacity: 0.9;
         }
 
         .btn-logout {
@@ -146,10 +132,6 @@
             color: var(--text-primary);
         }
 
-        .attendance-log {
-            margin-top: 16px;
-        }
-
         .log-entry {
             display: flex;
             justify-content: space-between;
@@ -160,33 +142,22 @@
             margin-bottom: 8px;
         }
 
-        .log-type {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .log-badge {
+        .badge-in {
+            background: rgba(76, 175, 80, 0.2);
+            color: var(--success-color);
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 11px;
             font-weight: 600;
         }
 
-        .badge-in {
-            background: rgba(76, 175, 80, 0.2);
-            color: var(--success-color);
-        }
-
         .badge-out {
             background: rgba(244, 135, 113, 0.2);
             color: var(--danger-color);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
         }
 
         .error {
@@ -197,23 +168,6 @@
             color: var(--danger-color);
             margin-bottom: 16px;
             font-size: 13px;
-        }
-
-        .user-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .user-details h2 {
-            font-size: 20px;
-            margin-bottom: 4px;
-        }
-
-        .user-details p {
-            font-size: 13px;
-            color: var(--text-secondary);
         }
     </style>
 </head>
@@ -226,65 +180,55 @@
                 <i class="fa-solid fa-building" style="font-size: 28px; color: var(--accent-color);"></i>
                 <h1>Mewurk HRMS</h1>
             </div>
-
             <div class="login-form">
                 <div class="card">
                     <div id="error-message" class="error" style="display: none;"></div>
-
                     <div class="form-group">
                         <label>Email / Username</label>
                         <input type="text" id="mewurk-email" placeholder="your.email@company.com">
                     </div>
-
                     <div class="form-group">
                         <label>Password</label>
                         <input type="password" id="mewurk-password" placeholder="Enter your password">
                     </div>
-
-                    <button id="login-btn" class="btn" onclick="loginToMewurk()">
+                    <button class="btn" onclick="loginToMewurk()" id="login-btn">
                         <i class="fa-solid fa-sign-in-alt"></i> Login to Mewurk
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Dashboard View (shown after login) -->
+        <!-- Dashboard View -->
         <div id="dashboard-view" style="display: none;">
-            <div class="header">
-                <i class="fa-solid fa-building" style="font-size: 28px; color: var(--accent-color);"></i>
-                <h1>Mewurk HRMS</h1>
-            </div>
-
-            <div class="user-info">
-                <div class="user-details">
-                    <h2 id="user-name">Loading...</h2>
-                    <p id="user-email"></p>
+            <div class="header" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fa-solid fa-building" style="font-size: 28px; color: var(--accent-color);"></i>
+                    <h1>Mewurk HRMS</h1>
                 </div>
-                <button class="btn btn-logout" onclick="logoutFromMewurk()">
-                    <i class="fa-solid fa-sign-out-alt"></i> Logout
-                </button>
+                <button class="btn btn-logout" onclick="logoutFromMewurk()">Logout</button>
             </div>
 
-            <!-- Monthly Stats -->
+            <div style="margin-bottom: 24px;">
+                <h2 id="user-name">Welcome</h2>
+                <p id="user-email" style="color: var(--text-secondary);"></p>
+            </div>
+
+            <!-- Live Status Card -->
+            <div id="live-card-container"></div>
+
             <div class="card">
-                <h3 style="margin-bottom: 16px;">Monthly Overview</h3>
-                <div class="stats-grid" id="stats-grid">
-                    <div class="loading">Loading stats...</div>
-                </div>
+                <h3>Monthly Overview</h3>
+                <div class="stats-grid" id="stats-grid"></div>
             </div>
 
-            <!-- Today's Attendance -->
             <div class="card">
-                <h3 style="margin-bottom: 16px;">Today's Attendance</h3>
-                <div id="attendance-container">
-                    <div class="loading">Loading attendance...</div>
-                </div>
+                <h3>Today's Attendance</h3>
+                <div id="attendance-container"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Use window.electronAPI exposed by preload.js
         var api = window.electronAPI || {
             invoke: () => Promise.reject('electronAPI not available')
         };
@@ -294,283 +238,262 @@
             token: null,
             refreshToken: null,
             userModel: null,
-            tenantId: null
+            tenantId: null,
+            lastAttendance: null,
+            timer: null
         };
 
-        // Load saved session on startup
+        const COMMON_HEADERS = {
+            "accept": "application/json",
+            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+            "content-type": "application/json",
+            "priority": "u=1, i"
+        };
+
         window.addEventListener('load', async () => {
-            try {
-                const saved = await api.invoke('get-session', 'mewurk-data');
-                if (saved && saved.isLoggedIn) {
-                    mewurkData = saved;
-                    showDashboard();
-                }
-            } catch (e) {
-                console.error('Failed to load Mewurk session:', e);
+            const saved = await api.invoke('get-session', 'mewurk-data');
+            if (saved && saved.isLoggedIn) {
+                mewurkData = saved;
+                await refreshMewurkToken();
+                showDashboard();
             }
         });
+
+        async function refreshMewurkToken() {
+            if (!mewurkData.refreshToken) return;
+            try {
+                const response = await fetch('https://app.mewurk.com/api/v1/userservice/account/refreshtoken', {
+                    method: 'POST',
+                    headers: COMMON_HEADERS,
+                    body: JSON.stringify({ refreshToken: mewurkData.refreshToken })
+                });
+                const data = await response.json();
+                if (data.isSuccess) {
+                    mewurkData.token = data.data.token;
+                    mewurkData.refreshToken = data.data.refreshToken;
+                    await api.invoke('save-session', 'mewurk-data', mewurkData);
+                }
+            } catch (e) { console.error('Refresh failed', e); }
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            let response = await fetch(url, {
+                ...options,
+                headers: { ...COMMON_HEADERS, ...options.headers, 'authorization': `Bearer ${mewurkData.token}` }
+            });
+            if (response.status === 401 && mewurkData.refreshToken) {
+                await refreshMewurkToken();
+                response = await fetch(url, {
+                    ...options,
+                    headers: { ...COMMON_HEADERS, ...options.headers, 'authorization': `Bearer ${mewurkData.token}` }
+                });
+            }
+            return response;
+        }
 
         async function loginToMewurk() {
             const email = document.getElementById('mewurk-email').value.trim();
             const password = document.getElementById('mewurk-password').value;
-            const errorDiv = document.getElementById('error-message');
             const loginBtn = document.getElementById('login-btn');
 
-            errorDiv.style.display = 'none';
-
-            if (!email || !password) {
-                showError('Please enter both email and password');
-                return;
-            }
+            if (!email || !password) return showError('Please enter all fields');
 
             loginBtn.disabled = true;
-            loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging in...';
+            loginBtn.innerHTML = 'Connecting...';
 
             try {
-                // Step 1: Lookup user to get tenantId
-                console.log('Looking up user:', email);
-                const lookupResponse = await fetch(`https://app.mewurk.com/api/v1/userservice/account/lookup?userName=${encodeURIComponent(email)}`, {
-                    method: 'GET',
-                    headers: {
-                        'accept': 'application/json',
-                        'content-type': 'application/json'
-                    }
-                });
-
-                if (!lookupResponse.ok) {
-                    throw new Error('User lookup failed. Please check your email.');
-                }
-
-                const lookupData = await lookupResponse.json();
-                console.log('Lookup response:', lookupData);
-
-                if (!lookupData.isSuccess || !lookupData.data.tenantDetails || lookupData.data.tenantDetails.length === 0) {
-                    throw new Error('No tenant found for this user');
-                }
+                const lookup = await fetch(`https://app.mewurk.com/api/v1/userservice/account/lookup?userName=${encodeURIComponent(email)}`);
+                const lookupData = await lookup.json();
+                if (!lookupData.isSuccess) throw new Error('User not found');
 
                 const tenantId = lookupData.data.tenantDetails[0].tenantId;
-                console.log('Tenant ID:', tenantId);
+                const encodedUser = btoa(`${email}|${tenantId}`);
 
-                // Step 2: Login with base64 encoded userName
-                const rawUserName = `${email}|${tenantId}`;
-                const encodedUserName = btoa(rawUserName);
-
-                console.log('Logging in with encoded userName');
                 const loginResponse = await fetch('https://app.mewurk.com/api/v1/userservice/account/login', {
                     method: 'POST',
-                    headers: {
-                        'accept': 'application/json',
-                        'content-type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        userName: encodedUserName,
-                        password: password,
-                        otp: null
-                    })
+                    headers: COMMON_HEADERS,
+                    body: JSON.stringify({ userName: encodedUser, password: password, otp: null })
                 });
 
-                if (!loginResponse.ok) {
-                    const errorText = await loginResponse.text();
-                    console.error('Login API failed with status:', loginResponse.status);
-                    console.error('Login API error response:', errorText);
-                    throw new Error(`Login failed: ${loginResponse.status} - ${errorText.substring(0, 100)}`);
-                }
-
                 const loginData = await loginResponse.json();
-                console.log('Login API response:', JSON.stringify(loginData, null, 2));
+                if (!loginData.isSuccess) throw new Error(loginData.message || 'Login failed');
 
-                if (!loginData.isSuccess) {
-                    console.error('Login API returned isSuccess=false:', loginData.message);
-                    throw new Error(loginData.message || 'Login failed');
-                }
-
-                if (!loginData.data || !loginData.data.token) {
-                    console.error('Login API response missing data or token:', loginData);
-                    throw new Error('Invalid login response: missing token');
-                }
-
-                // Save session
                 mewurkData = {
                     isLoggedIn: true,
                     token: loginData.data.token,
                     refreshToken: loginData.data.refreshToken,
                     userModel: loginData.data.userModel,
-                    tenantId: tenantId,
-                    email: email
+                    tenantId: tenantId
                 };
-
-                console.log('Saving mewurkData:', mewurkData);
                 await api.invoke('save-session', 'mewurk-data', mewurkData);
-
-                // Show dashboard
-                console.log('Calling showDashboard...');
                 showDashboard();
-
-            } catch (error) {
-                console.error('Mewurk login error:', error);
-                console.error('Error stack:', error.stack);
-
-                // Show detailed error in alert for debugging
-                alert('Login Error: ' + (error.message || error.toString()));
-
-                showError(error.message || 'Login failed. Please try again.');
+            } catch (e) {
+                showError(e.message);
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fa-solid fa-sign-in-alt"></i> Login to Mewurk';
+                loginBtn.innerHTML = 'Login to Mewurk';
             }
         }
 
-        async function showDashboard() {
+        function showDashboard() {
             document.getElementById('login-view').style.display = 'none';
             document.getElementById('dashboard-view').style.display = 'block';
+            document.getElementById('user-name').textContent = `${mewurkData.userModel.firstName} ${mewurkData.userModel.lastName}`;
+            document.getElementById('user-email').textContent = mewurkData.userModel.email;
+            loadStats();
+            loadAttendance();
 
-            // Display user info
-            const userName = `${mewurkData.userModel.firstName} ${mewurkData.userModel.lastName}`;
-            document.getElementById('user-name').textContent = userName;
-            document.getElementById('user-email').textContent = mewurkData.email || mewurkData.userModel.email;
-
-            // Load monthly stats
-            await loadMonthlyStats();
-
-            // Load today's attendance
-            await loadTodayAttendance();
+            if (mewurkData.timer) clearInterval(mewurkData.timer);
+            mewurkData.timer = setInterval(updateLiveCalculations, 60000);
         }
 
-        async function loadMonthlyStats() {
-            const statsGrid = document.getElementById('stats-grid');
-            statsGrid.innerHTML = '<div class="loading">Loading stats...</div>';
-
+        async function loadStats() {
+            const grid = document.getElementById('stats-grid');
+            grid.innerHTML = 'Loading...';
             try {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = now.getMonth() + 1;
-
-                const response = await fetch('https://app.mewurk.com/api/v1/attendanceservice/attendance/carddetails', {
+                const response = await fetchWithAuth('https://app.mewurk.com/api/v1/attendanceservice/attendance/carddetails', {
                     method: 'POST',
-                    headers: {
-                        'accept': 'application/json',
-                        'authorization': `Bearer ${mewurkData.token}`,
-                        'content-type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        employeeCode: Number(mewurkData.userModel.employeeCode),
-                        year: year,
-                        month: month
-                    })
+                    body: JSON.stringify({ employeeCode: Number(mewurkData.userModel.employeeCode), year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
                 });
-
-                if (!response.ok) throw new Error('Failed to load stats');
-
                 const data = await response.json();
-                console.log('Card details:', data);
-
-                if (data.isSuccess && data.data.cardDetails) {
-                    const details = data.data.cardDetails;
-                    statsGrid.innerHTML = `
-                        <div class="stat-card">
-                            <div class="stat-label">Present Days</div>
-                            <div class="stat-value" style="color: var(--success-color);">${details.present.totalPresent}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Absent Days</div>
-                            <div class="stat-value" style="color: var(--danger-color);">${details.absent.totalAbsent}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Working Hours</div>
-                            <div class="stat-value">${details.workingHours.total.toFixed(1)}h</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Avg Hours/Day</div>
-                            <div class="stat-value">${details.workingHours.dayAvg.toFixed(1)}h</div>
-                        </div>
+                if (data.isSuccess) {
+                    const d = data.data.cardDetails;
+                    grid.innerHTML = `
+                        <div class="stat-card">Present: ${d.present.totalPresent}</div>
+                        <div class="stat-card" style="border-left-color: var(--danger-color)">Absence: ${d.absent.totalAbsent}</div>
+                        <div class="stat-card">Hours: ${d.workingHours.total.toFixed(1)}h</div>
+                        <div class="stat-card" style="border-left-color: #FF9800">Late: ${d.gracePeriod.lateIn} | Early: ${d.gracePeriod.earlyOut}</div>
                     `;
                 } else {
-                    statsGrid.innerHTML = '<div class="error">Failed to load stats</div>';
+                    grid.innerHTML = '<div class="error">Failed to load stats details</div>';
                 }
-            } catch (error) {
-                console.error('Failed to load stats:', error);
-                statsGrid.innerHTML = '<div class="error">Failed to load stats</div>';
-            }
+            } catch (e) { grid.innerHTML = 'Failed to load stats'; }
         }
 
-        async function loadTodayAttendance() {
-            const container = document.getElementById('attendance-container');
-            container.innerHTML = '<div class="loading">Loading attendance...</div>';
-
+        function formatToIst(timeStr) {
             try {
-                const today = new Date().toISOString().split('T')[0];
+                const date = new Date(timeStr.includes('Z') ? timeStr : timeStr + 'Z');
+                return date.toLocaleTimeString('en-GB', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: 'Asia/Kolkata'
+                }).replace(/^0/, '');
+            } catch (e) { return timeStr; }
+        }
 
-                const response = await fetch('https://app.mewurk.com/api/v1/attendanceservice/attendancelogs/clockindetails', {
+        function parseMewurkTime(timeStr) {
+            try {
+                return new Date(timeStr.includes('Z') ? timeStr : timeStr + 'Z');
+            } catch (e) { return new Date(); }
+        }
+
+        async function loadAttendance() {
+            const cont = document.getElementById('attendance-container');
+            cont.innerHTML = 'Loading...';
+            try {
+                const response = await fetchWithAuth('https://app.mewurk.com/api/v1/attendanceservice/attendancelogs/clockindetails', {
                     method: 'POST',
-                    headers: {
-                        'accept': 'application/json',
-                        'authorization': `Bearer ${mewurkData.token}`,
-                        'content-type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        employeeCode: Number(mewurkData.userModel.employeeCode),
-                        clockDate: today
-                    })
+                    body: JSON.stringify({ employeeCode: Number(mewurkData.userModel.employeeCode), clockDate: new Date().toISOString().split('T')[0] })
                 });
-
-                if (!response.ok) throw new Error('Failed to load attendance');
-
                 const data = await response.json();
-                console.log('Attendance data:', data);
-
-                if (data.isSuccess && data.data.clockInDetails && data.data.clockInDetails.length > 0) {
-                    const logs = data.data.clockInDetails;
-                    let html = '<div class="attendance-log">';
-
-                    logs.forEach(log => {
-                        const badgeClass = log.inOutType === 'IN' ? 'badge-in' : 'badge-out';
-                        html += `
-                            <div class="log-entry">
-                                <div class="log-type">
-                                    <i class="fa-solid fa-${log.inOutType === 'IN' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
-                                    <span class="log-badge ${badgeClass}">${log.inOutType}</span>
-                                    <span>${log.clockTime}</span>
-                                </div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">
-                                    ${log.deviceName || log.sourceName}
-                                </div>
-                            </div>
-                        `;
+                if (data.isSuccess) {
+                    mewurkData.lastAttendance = data.data;
+                    const logs = data.data.clockInDetails.sort((a, b) => a.clockTime.localeCompare(b.clockTime));
+                    let html = '';
+                    logs.forEach(l => {
+                        const time = formatToIst(l.clockTime);
+                        html += `<div class="log-entry">
+                            <span><span class="${l.inOutType === 'IN' ? 'badge-in' : 'badge-out'}">${l.inOutType}</span> ${time}</span>
+                            <span style="font-size: 11px; color: var(--text-secondary)">${l.deviceName || 'Web'}</span>
+                        </div>`;
                     });
-
-                    html += '</div>';
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No attendance records for today</div>';
+                    cont.innerHTML = html || 'No logs today';
+                    updateLiveCalculations();
                 }
-            } catch (error) {
-                console.error('Failed to load attendance:', error);
-                container.innerHTML = '<div class="error">Failed to load attendance</div>';
-            }
+            } catch (e) { cont.innerHTML = 'Failed to load attendance'; }
         }
 
-        async function logoutFromMewurk() {
-            if (confirm('Are you sure you want to logout from Mewurk?')) {
-                mewurkData = {
-                    isLoggedIn: false,
-                    token: null,
-                    refreshToken: null,
-                    userModel: null,
-                    tenantId: null
-                };
+        function updateLiveCalculations() {
+            if (!mewurkData.lastAttendance) return;
+            const data = mewurkData.lastAttendance;
+            const logs = [...data.clockInDetails].sort((a, b) => a.clockTime.localeCompare(b.clockTime));
 
-                await api.invoke('save-session', 'mewurk-data', mewurkData);
+            let totalWorkMs = 0;
+            let lastIn = null;
+            let totalBreakMs = 0;
+            let lastOut = null;
 
-                document.getElementById('dashboard-view').style.display = 'none';
-                document.getElementById('login-view').style.display = 'block';
-                document.getElementById('mewurk-email').value = '';
-                document.getElementById('mewurk-password').value = '';
+            logs.forEach(l => {
+                const time = parseMewurkTime(l.clockTime);
+                if (l.inOutType === 'IN') {
+                    lastIn = time;
+                    if (lastOut) {
+                        totalBreakMs += (time - lastOut);
+                        lastOut = null;
+                    }
+                } else {
+                    if (lastIn) {
+                        totalWorkMs += (time - lastIn);
+                        lastIn = null;
+                    }
+                    lastOut = time;
+                }
+            });
+
+            if (lastIn) totalWorkMs += (new Date() - lastIn);
+            if (lastOut) totalBreakMs += (new Date() - lastOut);
+
+            // Shift Logic
+            let targetMs = 29700000; // 8h 15m default
+            if (data.attendanceConfigurationViewModel) {
+                const shift = data.attendanceConfigurationViewModel;
+                const [inH, inM] = shift.shiftInTime.split(':').map(Number);
+                const [outH, outM] = shift.shiftOutTime.split(':').map(Number);
+                const start = new Date(); start.setHours(inH, inM, 0, 0);
+                const end = new Date(); end.setHours(outH, outM, 0, 0);
+                if (end > start) targetMs = end - start;
             }
+
+            const remainingMs = targetMs - totalWorkMs;
+            const progress = Math.min(100, (totalWorkMs / targetMs) * 100);
+            const finishesAt = new Date(Date.now() + (remainingMs > 0 ? remainingMs : 0));
+
+            const container = document.getElementById('live-card-container');
+            container.innerHTML = `
+                <div style="background: var(--bg-secondary); border: 1px solid var(--accent-color); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
+                        <div>
+                            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">${remainingMs > 0 ? 'Remaining' : 'Overtime'}</div>
+                            <div style="font-size: 32px; font-weight: 800; color: ${remainingMs > 0 ? 'white' : 'var(--success-color)'}; font-family: monospace;">
+                                ${Math.floor(Math.abs(remainingMs) / 3600000)}h ${Math.floor((Math.abs(remainingMs) % 3600000) / 60000)}m
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                             <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">Target Finish</div>
+                             <div style="font-size: 20px; font-weight: 700; color: var(--accent-color);">${finishesAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
+                        </div>
+                    </div>
+                    <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; margin-bottom: 10px;">
+                        <div style="height: 100%; background: var(--accent-color); width: ${progress}%; transition: width 0.5s;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary);">
+                        <span>Spent: ${Math.floor(totalWorkMs / 3600000)}h ${Math.floor((totalWorkMs % 3600000) / 60000)}m</span>
+                        <span style="color: var(--accent-color); font-weight: bold;">${Math.round(progress)}%</span>
+                    </div>
+                </div>
+            `;
         }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
+        function logoutFromMewurk() {
+            if (mewurkData.timer) clearInterval(mewurkData.timer);
+            api.invoke('save-session', 'mewurk-data', null);
+            location.reload();
+        }
+
+        function showError(m) {
+            const e = document.getElementById('error-message');
+            e.textContent = m;
+            e.style.display = 'block';
         }
     </script>
 </body>
