@@ -214,6 +214,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       } else if (event == 'END_DAY') {
         endDay = log.timestamp;
+      } else if (event == 'EDIT_TIME') {
+        final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(log.details);
+        if (timeMatch != null) {
+          final hours = int.parse(timeMatch.group(1)!);
+          final mins = int.parse(timeMatch.group(2)!);
+          final baseDate = punchIn ?? log.timestamp;
+          punchIn = DateTime(baseDate.year, baseDate.month, baseDate.day, hours, mins);
+        }
       } else if (log.eventName == 'BREAK_START') {
         breakStart = log.timestamp;
       } else if (log.eventName == 'BREAK_END') {
