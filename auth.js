@@ -1,11 +1,11 @@
 const firebaseConfig = {
-    apiKey: "AIzaSyDJMucqPnHrw584CYTFTzoiV8XpP5_UfoI",
-    authDomain: "timetracker-d336f.firebaseapp.com",
-    projectId: "timetracker-d336f",
-    storageBucket: "timetracker-d336f.firebasestorage.app",
-    messagingSenderId: "240633561676",
-    appId: "1:240633561676:web:2d10cf5b21b24409e76ae9",
-    measurementId: "G-NQ0C17144G"
+    apiKey: window.env.FIREBASE_API_KEY,
+    authDomain: window.env.FIREBASE_AUTH_DOMAIN,
+    projectId: window.env.FIREBASE_PROJECT_ID,
+    storageBucket: window.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: window.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: window.env.FIREBASE_APP_ID,
+    measurementId: window.env.FIREBASE_MEASUREMENT_ID
 };
 
 firebase.initializeApp(firebaseConfig);
