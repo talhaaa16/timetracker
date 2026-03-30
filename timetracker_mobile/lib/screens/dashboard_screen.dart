@@ -223,17 +223,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           punchIn = DateTime(baseDate.year, baseDate.month, baseDate.day, hours, mins);
         }
       } else if (log.eventName == 'BREAK_START') {
-        breakStart = log.timestamp;
+        lastBreakStart = log.timestamp;
       } else if (log.eventName == 'BREAK_END') {
         // Try to parse duration from details first (most accurate)
         final mins = _extractMinutes(log.details);
         if (mins > 0) {
           totalBreakMs += mins * 60000;
-        } else if (breakStart != null) {
+        } else if (lastBreakStart != null) {
           // Fallback to timestamp difference
-          totalBreakMs += log.timestamp.difference(breakStart).inMilliseconds;
+          totalBreakMs += log.timestamp.difference(lastBreakStart).inMilliseconds;
         }
-        breakStart = null;
+        lastBreakStart = null;
       } else if (log.eventName == 'EDIT_BREAK') {
         final mins = _extractMinutes(log.details);
         if (log.details.contains('added')) {
@@ -248,13 +248,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (totalBreakMs < 0) totalBreakMs = 0;
 
     // If still on break, add time until now
-    if (breakStart != null && _isSameDay(breakStart, DateTime.now())) {
-      totalBreakMs += DateTime.now().difference(breakStart).inMilliseconds;
+    if (lastBreakStart != null && _isSameDay(lastBreakStart, DateTime.now())) {
+      totalBreakMs += DateTime.now().difference(lastBreakStart).inMilliseconds;
     }
 
     // Work duration: from punch in until (end day OR now)
     int totalWorkMs = 0;
     if (punchIn != null) {
+      final now = DateTime.now();
       final endTime = endDay ?? (_isSameDay(punchIn, now) ? now : punchIn.add(const Duration(hours: 8)));
       totalWorkMs = endTime.difference(punchIn).inMilliseconds - totalBreakMs;
       if (totalWorkMs < 0) totalWorkMs = 0;
