@@ -364,11 +364,11 @@
             </div>
             <div class="grid-2">
                 <div class="card">
-                    <div class="timer-label">Break (Daily Limit: 1h)</div>
+                    <div class="timer-label">Break Time Taken</div>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                         <div id="break-timer"
                             style="font-size: 28px; font-family: var(--font-code); color: var(--text-primary); margin: 5px 0 15px 0;">
-                            60:00</div>
+                            00:00</div>
                         <i class="fa-solid fa-pencil" onclick="editBreakTime()"
                             style="cursor: pointer; font-size: 13px; color: var(--accent-color); opacity: 0.7; margin-bottom: 10px;"
                             title="Edit break time"></i>
@@ -458,7 +458,7 @@
             <div class="card">
                 <div class="timer-label">About</div>
                 <div style="margin-top:10px; font-size:13px; color:var(--text-secondary);">
-                    <p><strong>Timetracker Dev Edition</strong> v1.0.10</p>
+                    <p><strong>Timetracker Dev Edition</strong> v1.0.12</p>
                     <p style="margin-top:5px; color:var(--accent-color);">Built by Talha Shaikh</p>
                 </div>
             </div>
@@ -614,7 +614,7 @@
         </div>
         <div id="toast" class="toast">Action Completed</div>
         <div class="status-bar"><span id="status-bar-msg">Ready</span><span><i class="fa-brands fa-electron"></i>
-                Timetracker v1.0.10</span></div>
+                Timetracker v1.0.12</span></div>
     </div>
 
     <script>
@@ -629,7 +629,8 @@
             lastBreakStartTime: null,
             totalBreakTaken: 0,
             notes: "",
-            isEnded: false
+            isEnded: false,
+            lastMewurkLogTime: null // Track last processed Mewurk log
         };
         let timerInterval = null;
 
@@ -671,6 +672,13 @@
 
             // Auto-sync every 20 mins
             setInterval(() => manualSync(true), 20 * 60 * 1000);
+
+            // Background Mewurk Sync: Every 45 seconds to get exact status
+            setInterval(async () => {
+                if (mewurkData && mewurkData.isLoggedIn && !isMewurkSearching) {
+                    await loadMewurkTodayAttendance();
+                }
+            }, 45 * 1000);
         };
 
         // Listen for updates from Main process
@@ -746,10 +754,8 @@
             let rem = endTime - now;
             if (rem < 0) rem = 0;
 
-            let breakRem = 3600000 - totalBreaks;
-
             document.getElementById('work-timer').innerText = formatTime(rem);
-            document.getElementById('break-timer').innerText = formatTime(breakRem, true);
+            document.getElementById('break-timer').innerText = formatTime(totalBreaks, true);
             document.getElementById('eta-display').innerText = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             document.title = `${formatTime(rem)} left`;
         }
@@ -990,8 +996,10 @@
         function getLogMeta(event) {
             switch (event) {
                 case 'PUNCH_IN': return { icon: 'fa-solid fa-sign-in-alt', color: '#89d185' };
-                case 'BREAK_START': return { icon: 'fa-solid fa-coffee', color: '#f48771' };
-                case 'BREAK_END': return { icon: 'fa-solid fa-play-circle', color: '#4fc1ff' };
+                case 'BREAK_START':
+                case 'OUT': return { icon: 'fa-solid fa-coffee', color: '#f48771' };
+                case 'BREAK_END':
+                case 'IN': return { icon: 'fa-solid fa-play-circle', color: '#4fc1ff' };
                 case 'END_DAY': return { icon: 'fa-solid fa-flag-checkered', color: '#ffcc00' };
                 case 'RESUME_WORK': return { icon: 'fa-solid fa-briefcase', color: '#b5cea8' };
                 case 'Meeting': return { icon: 'fa-solid fa-users', color: '#ce9178' };
@@ -1002,13 +1010,27 @@
         function updateUIState() {
             const btn = document.getElementById('break-btn');
             const status = document.getElementById('status-text');
+            const editBtn = document.querySelector('.fa-pencil[onclick="editBreakTime()"]');
+
+            if (mewurkData.isLoggedIn) {
+                btn.disabled = true;
+                btn.style.opacity = "0.6";
+                btn.style.cursor = "not-allowed";
+                if (editBtn) editBtn.style.display = "none";
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+                if (editBtn) editBtn.style.display = "inline-block";
+            }
+
             if (state.breakActive) {
-                btn.innerHTML = '<i class="fa-solid fa-play"></i> Resume Work';
-                btn.className = 'btn btn-success';
+                btn.innerHTML = mewurkData.isLoggedIn ? '<i class="fa-solid fa-sync fa-spin"></i> Syncing Break...' : '<i class="fa-solid fa-play"></i> Resume Work';
+                btn.className = mewurkData.isLoggedIn ? 'btn btn-outline' : 'btn btn-success';
                 status.innerText = "On Break";
                 status.style.color = "var(--danger-color)";
             } else {
-                btn.innerHTML = '<i class="fa-solid fa-mug-hot"></i> Take Break';
+                btn.innerHTML = mewurkData.isLoggedIn ? '<i class="fa-solid fa-check-circle"></i> Mewurk Active' : '<i class="fa-solid fa-mug-hot"></i> Take Break';
                 btn.className = 'btn btn-outline';
                 status.innerText = "Working";
                 status.style.color = "var(--success-color)";
@@ -1070,6 +1092,7 @@
         }
 
         // ==================== MEWURK INTEGRATION ====================
+        let isMewurkSearching = false; // Flag to pause auto-sync while searching others
         let mewurkState = {
             isConnected: false,
             employeeId: null,
@@ -1569,6 +1592,12 @@
                 }
             });
 
+            // 🔄 EXCLUSIVE SYNC: Overwrite desktop total break with exact Mewurk calculation
+            // This ensures manual dashboard timer matches Mewurk's "spent" break perfectly
+            if (mewurkData.isLoggedIn && state.isActive && !isMewurkSearching) {
+                state.totalBreakTaken = totalBreakMs;
+            }
+
             const now = new Date();
             // Ongoing session or ongoing break
             if (lastInTime) {
@@ -1633,6 +1662,40 @@
                 `;
                 const stats = document.getElementById('mewurk-stats-grid');
                 stats.insertAdjacentHTML('beforebegin', liveCardHtml);
+            }
+
+            // Match Desktop Break Status with Mewurk (Automated)
+            if (mewurkData.isLoggedIn && !isMewurkSearching && state.isActive && !state.isEnded) {
+                const currentMewurkOut = !!lastOutTime;
+                const mewurkLogTime = currentMewurkOut ? lastOutTime : lastInTime;
+
+                // Only trigger if status changed OR we have a new log we haven't seen
+                if (state.breakActive !== currentMewurkOut || (mewurkLogTime && state.lastMewurkLogTime !== mewurkLogTime.getTime())) {
+
+                    if (currentMewurkOut && !state.breakActive) {
+                        // Start Break (Exact Time)
+                        state.breakActive = true;
+                        state.lastBreakStartTime = mewurkLogTime;
+                        logEvent('OUT', `(Mewurk) Clocked OUT at ${mewurkLogTime.toLocaleTimeString()}`);
+                        showToast(`Break Start: ${mewurkLogTime.toLocaleTimeString()}`);
+                    }
+                    else if (!currentMewurkOut && state.breakActive) {
+                        // End Break (Exact Time)
+                        const endTime = lastInTime || now;
+                        const durationMs = (endTime - state.lastBreakStartTime);
+                        const durationMins = Math.round(durationMs / 60000);
+
+                        state.breakActive = false;
+                        state.totalBreakTaken += durationMs;
+                        state.lastBreakStartTime = null;
+                        logEvent('IN', `(Mewurk) Clocked IN at ${endTime.toLocaleTimeString()} (${durationMins}m)`);
+                        showToast(`Break End: ${endTime.toLocaleTimeString()}`);
+                    }
+
+                    state.lastMewurkLogTime = mewurkLogTime ? mewurkLogTime.getTime() : null;
+                    updateUIState();
+                    saveState();
+                }
             }
 
             const rLabel = document.getElementById('mewurk-remaining-label');
