@@ -199,7 +199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (var log in cronLogs) {
       final event = log.eventName.toUpperCase();
       
-      if (event == 'PUNCH_IN' || event == 'RESUME_WORK' || event == 'IN') {
+      if (event == 'PUNCH_IN' || event == 'RESUME_WORK') {
         if (punchIn == null) punchIn = log.timestamp;
         
         // If we were "OUT" (Mewurk style break), count gap as break
@@ -222,9 +222,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final baseDate = punchIn ?? log.timestamp;
           punchIn = DateTime(baseDate.year, baseDate.month, baseDate.day, hours, mins);
         }
-      } else if (log.eventName == 'BREAK_START') {
+      } else if (event == 'BREAK_START' || event == 'OUT') {
         lastBreakStart = log.timestamp;
-      } else if (log.eventName == 'BREAK_END') {
+      } else if (event == 'BREAK_END' || event == 'IN') {
         // Try to parse duration from details first (most accurate)
         final mins = _extractMinutes(log.details);
         if (mins > 0) {
