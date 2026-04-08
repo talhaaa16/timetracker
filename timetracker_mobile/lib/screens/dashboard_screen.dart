@@ -202,17 +202,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (event == 'PUNCH_IN' || event == 'RESUME_WORK') {
         if (punchIn == null) punchIn = log.timestamp;
         
-        // If we were "OUT" (Mewurk style break), count gap as break
-        if (lastOutTime != null) {
-          totalBreakMs += log.timestamp.difference(lastOutTime).inMilliseconds;
-          lastOutTime = null;
-        }
-        // If we were on specific break
+        // If we were on specific break or Mewurk OUT
         if (lastBreakStart != null) {
           totalBreakMs += log.timestamp.difference(lastBreakStart).inMilliseconds;
           lastBreakStart = null;
         }
-      } else if (event == 'END_DAY') {
+      } else if (event == 'END_DAY' || event == 'PUNCH_OUT') {
         endDay = log.timestamp;
       } else if (event == 'EDIT_TIME') {
         final timeMatch = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(log.details);
@@ -225,7 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } else if (event == 'BREAK_START' || event == 'OUT') {
         lastBreakStart = log.timestamp;
       } else if (event == 'BREAK_END' || event == 'IN') {
-        // Try to parse duration from details first (most accurate)
+        // Try to parse duration from details first (most accurate for synced logs)
         final mins = _extractMinutes(log.details);
         if (mins > 0) {
           totalBreakMs += mins * 60000;
@@ -234,7 +229,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           totalBreakMs += log.timestamp.difference(lastBreakStart).inMilliseconds;
         }
         lastBreakStart = null;
-      } else if (log.eventName == 'EDIT_BREAK') {
+      } else if (event == 'EDIT_BREAK') {
         final mins = _extractMinutes(log.details);
         if (log.details.contains('added')) {
           totalBreakMs += mins * 60000;
@@ -247,9 +242,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Ensure break time doesn't go negative
     if (totalBreakMs < 0) totalBreakMs = 0;
 
-    // If still on break, add time until now
-    if (lastBreakStart != null && _isSameDay(lastBreakStart, DateTime.now())) {
-      totalBreakMs += DateTime.now().difference(lastBreakStart).inMilliseconds;
+    // If still on break (last event was OUT or BREAK_START), add time until now
+    if (lastBreakStart != null) {
+      final now = DateTime.now();
+      if (_isSameDay(lastBreakStart, now)) {
+        totalBreakMs += now.difference(lastBreakStart).inMilliseconds;
+      }
     }
 
     // Work duration: from punch in until (end day OR now)
