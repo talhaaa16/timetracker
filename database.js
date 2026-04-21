@@ -2,17 +2,12 @@ const Database = require("better-sqlite3");
 const path = require("path");
 const { app } = require("electron");
 
-/* ============================
-   FIREBASE ADMIN SDK (DESKTOP)
-   ============================ */
 const admin = require("firebase-admin");
 
-// 🔐 Load service account key
 const serviceAccount = require(
   path.join(__dirname, "serviceAccountKey.json")
 );
 
-// Initialize Admin SDK (ONLY ONCE)
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
@@ -21,9 +16,6 @@ if (!admin.apps.length) {
 
 const firestore = admin.firestore();
 
-/* ============================
-   SQLITE SETUP
-   ============================ */
 let dbPath;
 try {
   dbPath = path.join(app.getPath("userData"), "punch_clock.db");
@@ -34,9 +26,6 @@ try {
 const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
 
-/* ============================
-   TABLES
-   ============================ */
 db.exec(`
   CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,19 +41,15 @@ db.exec(`
 `);
 
 module.exports = {
-  /* ============================
-     ADD LOG (LOCAL + FIRESTORE)
-     ============================ */
+
   addLog: async (name, details = "", uid = null) => {
     const isoTimestamp = new Date().toISOString();
 
-    // 1️⃣ Save locally (SQLite)
     const stmt = db.prepare(
       "INSERT INTO logs (event_name, details, timestamp) VALUES (?, ?, ?)"
     );
     const info = stmt.run(name, details, isoTimestamp);
 
-    // 2️⃣ Save to Firestore (ADMIN SDK → bypass rules)
     if (uid) {
       try {
         await firestore
@@ -88,18 +73,12 @@ module.exports = {
     return { id: info.lastInsertRowid, timestamp: isoTimestamp };
   },
 
-  /* ============================
-     READ LOCAL LOGS
-     ============================ */
   getLogs: () => {
     return db
       .prepare("SELECT * FROM logs ORDER BY id DESC LIMIT 100")
       .all();
   },
 
-  /* ============================
-     SESSION STORAGE
-     ============================ */
   setSession: (key, val) => {
     return db
       .prepare("INSERT OR REPLACE INTO session (key, value) VALUES (?, ?)")

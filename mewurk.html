@@ -174,7 +174,6 @@
 
 <body>
     <div class="container">
-        <!-- Login View -->
         <div id="login-view">
             <div class="header">
                 <i class="fa-solid fa-building" style="font-size: 28px; color: var(--accent-color);"></i>
@@ -198,7 +197,6 @@
             </div>
         </div>
 
-        <!-- Dashboard View -->
         <div id="dashboard-view" style="display: none;">
             <div class="header" style="justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -213,7 +211,6 @@
                 <p id="user-email" style="color: var(--text-secondary);"></p>
             </div>
 
-            <!-- Live Status Card -->
             <div id="live-card-container"></div>
 
             <div class="card">
@@ -443,7 +440,6 @@
             if (lastIn) totalWorkMs += (new Date() - lastIn);
             if (lastOut) totalBreakMs += (new Date() - lastOut);
 
-            // Shift Logic
             let targetMs = 29700000; // 8h 15m default
             if (data.attendanceConfigurationViewModel) {
                 const shift = data.attendanceConfigurationViewModel;

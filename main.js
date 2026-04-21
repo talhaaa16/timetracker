@@ -11,9 +11,6 @@ let mainWindow;
 let db;
 let currentUser = null;
 
-/* ============================
-   CREATE WINDOW
-   ============================ */
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 500,
@@ -32,9 +29,6 @@ function createWindow() {
     mainWindow.setMenu(null);
 }
 
-/* ============================
-   AUTH SUCCESS (FROM RENDERER)
-   ============================ */
 ipcMain.on("auth-success", (_, userData) => {
     console.log("Main process received auth-success for:", userData.email);
     console.log("Authenticated UID:", userData.uid);
@@ -46,9 +40,7 @@ ipcMain.on("auth-success", (_, userData) => {
         .catch(err => console.error("Failed to load index.html:", err));
 });
 
-/* ============================
-   LOGOUT
-   ============================ */
+
 ipcMain.on("request-logout", () => {
     console.log("User logged out");
     currentUser = null;
@@ -58,9 +50,6 @@ ipcMain.on("request-logout", () => {
     }
 });
 
-/* ============================
-   AUTO UPDATE (PRODUCTION ONLY)
-   ============================ */
 if (app.isPackaged) {
     const server = "https://update.electronjs.org";
     const feed = `${server}/talhaaa16/timetracker/${process.platform}-${process.arch}/${app.getVersion()}`;
@@ -84,11 +73,8 @@ if (app.isPackaged) {
     );
 }
 
-/* ============================
-   APP READY
-   ============================ */
 app.whenReady().then(() => {
-    // 🔥 Database loads AFTER app is ready
+
     db = require("./database.js");
 
     createWindow();
