@@ -824,8 +824,6 @@
 
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-desc').innerText = description;
-            input.value = currentValue;
-
             if (mode === 'break') {
                 stdButtons.style.display = 'none';
                 breakButtons.style.display = 'flex';
@@ -838,17 +836,15 @@
                 input.type = 'text';
             }
 
-            // Store the action to perform when clicking Save
+            input.value = currentValue;
+
             currentModalCallback = callback;
 
             modal.style.display = 'flex';
             input.focus();
-
-            // Handle Enter key in input
             input.onkeydown = (e) => {
                 if (e.key === 'Enter') {
                     if (mode === 'standard') confirmModal();
-                    // In break mode, Enter key doesn't have a single default confirm action
                 }
                 if (e.key === 'Escape') closeModal();
             };
