@@ -29,7 +29,6 @@ auth.onAuthStateChanged(async (user) => {
         };
 
         try {
-            // Try to get extra info, but don't let it stop the login if it fails
             const snap = await db.collection("users").doc(user.uid).get();
             if (snap.exists) {
                 const data = snap.data();
@@ -40,7 +39,6 @@ auth.onAuthStateChanged(async (user) => {
             console.warn("Could not fetch profile, proceeding anyway:", error);
         }
 
-        // 🚀 THIS IS THE KEY: Sending the signal to main.js
         if (window.electronAPI && window.electronAPI.authSuccess) {
             window.electronAPI.authSuccess(userData);
         } else {
@@ -57,7 +55,6 @@ window.toggleMode = function () {
 };
 
 window.handleAuth = async function () {
-    // 🛑 FIXED: Changed variable names to avoid conflict with element IDs
     const emailVal = document.getElementById("email").value.trim();
     const passVal = document.getElementById("pass").value;
 
