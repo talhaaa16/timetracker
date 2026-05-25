@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mewurk HRMS - Timetracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -14,19 +15,21 @@
         }
 
         :root {
-            --bg-primary: #1e1e2e;
-            --bg-secondary: #27293d;
-            --card-bg: rgba(39, 41, 61, 0.6);
-            --text-primary: #e0e0e0;
-            --text-secondary: #9ca3af;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --accent-color: #667eea;
-            --success-color: #4CAF50;
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --card-bg: #2d2d2d;
+            --text-primary: #cccccc;
+            --text-secondary: #858585;
+            --border-color: #3e3e3e;
+            --accent-color: #007acc;
+            --success-color: #89d185;
             --danger-color: #f48771;
+            --font-ui: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--font-ui);
             background: var(--bg-primary);
             color: var(--text-primary);
             padding: 20px;
@@ -48,9 +51,8 @@
 
         .card {
             background: var(--card-bg);
-            backdrop-filter: blur(10px);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 20px;
             margin-bottom: 16px;
         }
@@ -84,7 +86,7 @@
         .btn {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--accent-color);
             border: none;
             border-radius: 6px;
             color: white;
@@ -95,8 +97,8 @@
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            opacity: 0.9;
+            background: #0062a3;
+            transform: translateY(-1px);
         }
 
         .btn-logout {
@@ -203,7 +205,12 @@
                     <i class="fa-solid fa-building" style="font-size: 28px; color: var(--accent-color);"></i>
                     <h1>Mewurk HRMS</h1>
                 </div>
-                <button class="btn btn-logout" onclick="logoutFromMewurk()">Logout</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-logout" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);" onclick="refreshMewurkData()">
+                        <i class="fa-solid fa-rotate" id="mewurk-refresh-icon"></i> Refresh
+                    </button>
+                    <button class="btn btn-logout" onclick="logoutFromMewurk()">Logout</button>
+                </div>
             </div>
 
             <div style="margin-bottom: 24px;">
@@ -239,6 +246,33 @@
             lastAttendance: null,
             timer: null
         };
+
+        function getResolvedInOutType(log) {
+            if (!log) return null;
+            const textFields = [
+                log.locationName,
+                log.deviceName,
+                log.sourceName
+            ];
+
+            for (const field of textFields) {
+                if (field && typeof field === 'string') {
+                    const val = field.trim().toUpperCase();
+                    if (/\bOUT\b/i.test(val) || val.endsWith(' OUT') || val.endsWith('-OUT')) {
+                        return 'OUT';
+                    }
+                    if (/\bIN\b/i.test(val) || val.endsWith(' IN') || val.endsWith('-IN')) {
+                        return 'IN';
+                    }
+                }
+            }
+
+            if (log.inOutType === 'IN' || log.inOutType === 'OUT') {
+                return log.inOutType;
+            }
+
+            return log.inOutType;
+        }
 
         const COMMON_HEADERS = {
             "accept": "application/json",
@@ -343,6 +377,22 @@
             mewurkData.timer = setInterval(updateLiveCalculations, 60000);
         }
 
+        async function refreshMewurkData() {
+            const icon = document.getElementById('mewurk-refresh-icon');
+            if (icon) icon.classList.add('fa-spin');
+            try {
+                await refreshMewurkToken();
+                await Promise.all([
+                    loadStats(),
+                    loadAttendance()
+                ]);
+            } catch (e) {
+                console.error("Refresh failed", e);
+            } finally {
+                if (icon) icon.classList.remove('fa-spin');
+            }
+        }
+
         async function loadStats() {
             const grid = document.getElementById('stats-grid');
             grid.innerHTML = 'Loading...';
@@ -355,10 +405,10 @@
                 if (data.isSuccess) {
                     const d = data.data.cardDetails;
                     grid.innerHTML = `
-                        <div class="stat-card">Present: ${d.present.totalPresent}</div>
+                        <div class="stat-card" style="border-left-color: var(--success-color)">Present: ${d.present.totalPresent}</div>
                         <div class="stat-card" style="border-left-color: var(--danger-color)">Absence: ${d.absent.totalAbsent}</div>
-                        <div class="stat-card">Hours: ${d.workingHours.total.toFixed(1)}h</div>
-                        <div class="stat-card" style="border-left-color: #FF9800">Late: ${d.gracePeriod.lateIn} | Early: ${d.gracePeriod.earlyOut}</div>
+                        <div class="stat-card" style="border-left-color: var(--accent-color)">Hours: ${d.workingHours.total.toFixed(1)}h</div>
+                        <div class="stat-card" style="border-left-color: #cca700">Late: ${d.gracePeriod.lateIn} | Early: ${d.gracePeriod.earlyOut}</div>
                     `;
                 } else {
                     grid.innerHTML = '<div class="error">Failed to load stats details</div>';
@@ -399,8 +449,9 @@
                     let html = '';
                     logs.forEach(l => {
                         const time = formatToIst(l.clockTime);
+                        const resolvedType = getResolvedInOutType(l);
                         html += `<div class="log-entry">
-                            <span><span class="${l.inOutType === 'IN' ? 'badge-in' : 'badge-out'}">${l.inOutType}</span> ${time}</span>
+                            <span><span class="${resolvedType === 'IN' ? 'badge-in' : 'badge-out'}">${l.inOutType}</span> ${time}</span>
                             <span style="font-size: 11px; color: var(--text-secondary)">${l.deviceName || 'Web'}</span>
                         </div>`;
                     });
@@ -422,13 +473,14 @@
 
             logs.forEach(l => {
                 const time = parseMewurkTime(l.clockTime);
-                if (l.inOutType === 'IN') {
+                const resolvedType = getResolvedInOutType(l);
+                if (resolvedType === 'IN') {
                     lastIn = time;
                     if (lastOut) {
                         totalBreakMs += (time - lastOut);
                         lastOut = null;
                     }
-                } else {
+                } else if (resolvedType === 'OUT') {
                     if (lastIn) {
                         totalWorkMs += (time - lastIn);
                         lastIn = null;
@@ -456,11 +508,11 @@
 
             const container = document.getElementById('live-card-container');
             container.innerHTML = `
-                <div style="background: var(--bg-secondary); border: 1px solid var(--accent-color); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-color); border-radius: 8px; padding: 20px; margin-bottom: 24px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
                         <div>
                             <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px;">${remainingMs > 0 ? 'Remaining' : 'Overtime'}</div>
-                            <div style="font-size: 32px; font-weight: 800; color: ${remainingMs > 0 ? 'white' : 'var(--success-color)'}; font-family: monospace;">
+                            <div style="font-size: 32px; font-weight: 800; color: ${remainingMs > 0 ? 'white' : 'var(--success-color)'}; font-family: var(--font-code);">
                                 ${Math.floor(Math.abs(remainingMs) / 3600000)}h ${Math.floor((Math.abs(remainingMs) % 3600000) / 60000)}m
                             </div>
                         </div>
@@ -470,7 +522,7 @@
                         </div>
                     </div>
                     <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; margin-bottom: 10px;">
-                        <div style="height: 100%; background: var(--accent-color); width: ${progress}%; transition: width 0.5s;"></div>
+                        <div style="height: 100%; background: linear-gradient(90deg, var(--accent-color), #00a3ff); width: ${progress}%; transition: width 0.5s;"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary);">
                         <span>Spent: ${Math.floor(totalWorkMs / 3600000)}h ${Math.floor((totalWorkMs % 3600000) / 60000)}m</span>

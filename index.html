@@ -458,7 +458,7 @@
             <div class="card">
                 <div class="timer-label">About</div>
                 <div style="margin-top:10px; font-size:13px; color:var(--text-secondary);">
-                    <p><strong>Timetracker Dev Edition</strong> v1.0.12</p>
+                    <p><strong>Timetracker Dev Edition</strong> v1.0.13</p>
                     <p style="margin-top:5px; color:var(--accent-color);">Built by Talha Shaikh</p>
                 </div>
             </div>
@@ -511,37 +511,23 @@
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
                         <div class="header-title"><i class="fa-solid fa-building"></i> Mewurk HRMS</div>
-                        <button class="btn btn-danger" style="padding: 10px 20px; width: auto; font-size: 13px;"
-                            onclick="logoutFromMewurk()">
-                            <i class="fa-solid fa-sign-out-alt"></i> Logout
-                        </button>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn"
+                                style="padding: 10px 15px; width: auto; font-size: 13px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-primary);"
+                                onclick="refreshMewurkData()">
+                                <i class="fa-solid fa-rotate" id="mewurk-refresh-icon"></i> Refresh
+                            </button>
+                            <button class="btn btn-danger" style="padding: 10px 20px; width: auto; font-size: 13px;"
+                                onclick="logoutFromMewurk()">
+                                <i class="fa-solid fa-sign-out-alt"></i> Logout
+                            </button>
+                        </div>
                     </div>
 
                     <div style="margin-bottom: 32px;">
                         <h2 id="mewurk-user-name" style="font-size: 24px; margin-bottom: 6px; font-weight: 600;">
                             Loading...</h2>
                         <p id="mewurk-user-email" style="font-size: 14px; color: var(--text-secondary);"></p>
-                    </div>
-
-                    <!-- Search Employee Box -->
-                    <div class="card"
-                        style="margin-bottom: 24px; background: rgba(0, 122, 204, 0.05); border: 1px dashed var(--accent-color);">
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <div style="flex: 1; position: relative;">
-                                <i class="fa-solid fa-user-tag"
-                                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
-                                <input type="text" id="mewurk-search-code" placeholder="Enter Employee Name..."
-                                    style="width: 100%; padding: 10px 10px 10px 35px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: white; font-size: 13px;">
-                            </div>
-                            <button class="btn" style="padding: 10px 15px; font-size: 13px;" onclick="searchEmployee()">
-                                <i class="fa-solid fa-magnifying-glass"></i> Search
-                            </button>
-                            <button id="mewurk-clear-search" class="btn btn-outline"
-                                style="padding: 10px 15px; font-size: 13px; display: none;"
-                                onclick="clearMewurkSearch()">
-                                <i class="fa-solid fa-rotate-left"></i> My Logs
-                            </button>
-                        </div>
                     </div>
 
                     <!-- Monthly Stats -->
@@ -614,7 +600,7 @@
         </div>
         <div id="toast" class="toast">Action Completed</div>
         <div class="status-bar"><span id="status-bar-msg">Ready</span><span><i class="fa-brands fa-electron"></i>
-                Timetracker v1.0.12</span></div>
+                Timetracker v1.0.13</span></div>
     </div>
 
     <script>
@@ -1363,6 +1349,33 @@
             email: null
         };
 
+        function getResolvedInOutType(log) {
+            if (!log) return null;
+            const textFields = [
+                log.locationName,
+                log.deviceName,
+                log.sourceName
+            ];
+
+            for (const field of textFields) {
+                if (field && typeof field === 'string') {
+                    const val = field.trim().toUpperCase();
+                    if (/\bOUT\b/i.test(val) || val.endsWith(' OUT') || val.endsWith('-OUT')) {
+                        return 'OUT';
+                    }
+                    if (/\bIN\b/i.test(val) || val.endsWith(' IN') || val.endsWith('-IN')) {
+                        return 'IN';
+                    }
+                }
+            }
+
+            if (log.inOutType === 'IN' || log.inOutType === 'OUT') {
+                return log.inOutType;
+            }
+
+            return log.inOutType;
+        }
+
         // Load saved Mewurk session on startup
         window.addEventListener('load', async () => {
             try {
@@ -1552,6 +1565,24 @@
             updateMewurkLiveCalculations();
         }
 
+        async function refreshMewurkData() {
+            const icon = document.getElementById('mewurk-refresh-icon');
+            if (icon) icon.classList.add('fa-spin');
+            try {
+                await refreshMewurkToken();
+                await Promise.all([
+                    loadMewurkMonthlyStats(),
+                    loadMewurkTodayAttendance()
+                ]);
+                showToast("Mewurk data refreshed successfully");
+            } catch (e) {
+                console.error("Refresh failed", e);
+                showToast("Failed to refresh Mewurk data");
+            } finally {
+                if (icon) icon.classList.remove('fa-spin');
+            }
+        }
+
         function updateMewurkLiveCalculations() {
             if (!mewurkData.lastFetchedAttendance) return;
             const data = mewurkData.lastFetchedAttendance;
@@ -1573,13 +1604,14 @@
 
             sortedLogs.forEach(log => {
                 const time = parseMewurkTime(log.clockTime);
-                if (log.inOutType === 'IN') {
+                const resolvedType = getResolvedInOutType(log);
+                if (resolvedType === 'IN') {
                     if (lastOutTime) {
                         totalBreakMs += (time - lastOutTime);
                         lastOutTime = null;
                     }
                     lastInTime = time;
-                } else if (log.inOutType === 'OUT') {
+                } else if (resolvedType === 'OUT') {
                     if (lastInTime) {
                         totalWorkMs += (time - lastInTime);
                         lastInTime = null;
@@ -1635,11 +1667,11 @@
             if (!card) {
                 const container = document.getElementById('mewurk-dashboard-view');
                 const liveCardHtml = `
-                    <div id="mewurk-live-card" style="background: var(--bg-secondary); border: 1px solid var(--accent-color); border-radius: 12px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;">
+                    <div id="mewurk-live-card" style="background: #252526; border: 1px solid var(--border-color); border-left: 4px solid var(--accent-color); border-radius: 8px; padding: 20px; margin-bottom: 24px; position: relative; overflow: hidden;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px;">
                             <div>
                                 <div id="mewurk-remaining-label" style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Time Remaining</div>
-                                <div id="mewurk-remaining-val" style="font-size: 32px; font-weight: 800; font-family: monospace; color: white;">0h 00m</div>
+                                <div id="mewurk-remaining-val" style="font-size: 32px; font-weight: 800; font-family: var(--font-code); color: white;">0h 00m</div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Finishes At</div>
@@ -1647,7 +1679,7 @@
                             </div>
                         </div>
                         <div style="height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 12px; overflow: hidden;">
-                            <div id="mewurk-progress-bar" style="height: 100%; background: linear-gradient(90deg, var(--accent-color), #7E57C2); width: 0%; transition: width 1s ease;"></div>
+                            <div id="mewurk-progress-bar" style="height: 100%; background: linear-gradient(90deg, var(--accent-color), #00a3ff); width: 0%; transition: width 1s ease;"></div>
                         </div>
                         <div style="display: flex; justify-content: space-between; font-size: 12px;">
                             <span id="mewurk-spent-val" style="color: var(--text-secondary);">Spent: 0h 00m</span>
@@ -1743,29 +1775,27 @@
                 if (!response.ok) throw new Error('Failed to load stats');
 
                 const data = await response.json();
-                console.log('Card details:', data);
-
                 if (data.isSuccess && data.data.cardDetails) {
                     const d = data.data.cardDetails;
                     statsGrid.innerHTML = `
-                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                        <div style="background: #252526; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; border-left: 4px solid var(--success-color);">
                             <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Present Days</div>
-                            <div style="font-size: 24px; font-weight: 700; color: #4CAF50;">${d.present.totalPresent}</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--success-color);">${d.present.totalPresent}</div>
                             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Leaves: ${d.offDays.totalLeave} | Offs: ${d.offDays.totalWeekoff}</div>
                         </div>
-                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid #F44336;">
+                        <div style="background: #252526; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; border-left: 4px solid var(--danger-color);">
                             <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Absence & Late</div>
-                            <div style="font-size: 24px; font-weight: 700; color: #F44336;">${d.absent.totalAbsent}</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--danger-color);">${d.absent.totalAbsent}</div>
                             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Late In: ${d.gracePeriod.lateIn} | Early Out: ${d.gracePeriod.earlyOut}</div>
                         </div>
-                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid var(--accent-color);">
+                        <div style="background: #252526; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; border-left: 4px solid var(--accent-color);">
                             <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Working Hours</div>
                             <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${d.workingHours.total.toFixed(1)}h</div>
                             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Avg: ${d.workingHours.dayAvg.toFixed(1)}h / day</div>
                         </div>
-                         <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid #FF9800;">
+                         <div style="background: #252526; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; border-left: 4px solid #cca700;">
                             <div style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.5px;">Regularization</div>
-                            <div style="font-size: 24px; font-weight: 700; color: #FF9800;">${d.regularization.approved}/${d.regularization.applied}</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #cca700;">${d.regularization.approved}/${d.regularization.applied}</div>
                             <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Holidays: ${d.offDays.totalHoliday}</div>
                         </div>
                     `;
@@ -1912,13 +1942,14 @@
 
                     if (sortedLogs.length > 0) {
                         sortedLogs.forEach(log => {
-                            const badgeColor = log.inOutType === 'IN' ? 'var(--success-color)' : 'var(--danger-color)';
-                            const badgeBg = log.inOutType === 'IN' ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 135, 113, 0.2)';
+                            const resolvedType = getResolvedInOutType(log);
+                            const badgeColor = resolvedType === 'IN' ? 'var(--success-color)' : 'var(--danger-color)';
+                            const badgeBg = resolvedType === 'IN' ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 135, 113, 0.2)';
                             const timeIst = formatToIst(log.clockTime);
 
-                            if (log.inOutType === 'OUT') {
+                            if (resolvedType === 'OUT') {
                                 lastOutTimeObj = parseMewurkTime(log.clockTime);
-                            } else if (log.inOutType === 'IN' && lastOutTimeObj) {
+                            } else if (resolvedType === 'IN' && lastOutTimeObj) {
                                 const currentInTime = parseMewurkTime(log.clockTime);
                                 const diff = (currentInTime - lastOutTimeObj) / (1000 * 60);
                                 if (diff > 0) totalBreakMinutes += diff;
@@ -1929,7 +1960,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${badgeColor};">
                                     <div style="display: flex; align-items: center; gap: 12px;">
                                         <div style="width: 32px; height: 32px; border-radius: 50%; background: ${badgeBg}; display: flex; align-items: center; justify-content: center; color: ${badgeColor};">
-                                            <i class="fa-solid fa-${log.inOutType === 'IN' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
+                                            <i class="fa-solid fa-${resolvedType === 'IN' ? 'sign-in-alt' : 'sign-out-alt'}"></i>
                                         </div>
                                         <div>
                                             <div style="font-size: 14px; font-weight: 600; color: white;">${timeIst}</div>
