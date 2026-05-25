@@ -12,7 +12,7 @@
     "start": "electron .",
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "make": "electron-forge make",
-    "publish": "node -r dotenv/config node_modules/@electron-forge/cli/bin/electron-forge.js publish"
+    "publish": "node -r dotenv/config node_modules/@electron-forge/cli/dist/electron-forge.js publish"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
