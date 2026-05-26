@@ -191,7 +191,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     DateTime? endDay;
     int totalBreakMs = 0;
     DateTime? lastBreakStart;
-    DateTime? lastOutTime;
 
     // Process from oldest to newest for temporal logic
     final cronLogs = logs.reversed.toList();
@@ -199,9 +198,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     for (var log in cronLogs) {
       final event = log.eventName.toUpperCase();
       
-      if (event == 'PUNCH_IN' || event == 'RESUME_WORK') {
+      if (event == 'PUNCH_IN' || event == 'RESUME_WORK' || event == 'IN') {
         if (punchIn == null) punchIn = log.timestamp;
-        
+      }
+
+      if (event == 'PUNCH_IN' || event == 'RESUME_WORK') {
         // If we were on specific break or Mewurk OUT
         if (lastBreakStart != null) {
           totalBreakMs += log.timestamp.difference(lastBreakStart).inMilliseconds;
@@ -242,19 +243,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Ensure break time doesn't go negative
     if (totalBreakMs < 0) totalBreakMs = 0;
 
-    // If still on break (last event was OUT or BREAK_START), add time until now
-    if (lastBreakStart != null) {
-      final now = DateTime.now();
-      if (_isSameDay(lastBreakStart, now)) {
-        totalBreakMs += now.difference(lastBreakStart).inMilliseconds;
-      }
-    }
-
     // Work duration: from punch in until (end day OR now)
     int totalWorkMs = 0;
     if (punchIn != null) {
       final now = DateTime.now();
       final endTime = endDay ?? (_isSameDay(punchIn, now) ? now : punchIn.add(const Duration(hours: 8)));
+      
+      // If still on break (last event was OUT or BREAK_START), add time until endTime
+      if (lastBreakStart != null) {
+        if (endTime.isAfter(lastBreakStart)) {
+          totalBreakMs += endTime.difference(lastBreakStart).inMilliseconds;
+        }
+      }
+
       totalWorkMs = endTime.difference(punchIn).inMilliseconds - totalBreakMs;
       if (totalWorkMs < 0) totalWorkMs = 0;
     }
@@ -322,8 +323,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Map<String, dynamic> _getEventMeta(String event) {
     switch (event) {
-      case 'PUNCH_IN': return {'icon': Icons.login_rounded, 'color': const Color(0xFF48bb78)};
-      case 'BREAK_START': return {'icon': Icons.coffee_rounded, 'color': const Color(0xFFf56565)};
+      case 'PUNCH_IN':
+      case 'IN': return {'icon': Icons.login_rounded, 'color': const Color(0xFF48bb78)};
+      case 'BREAK_START':
+      case 'OUT': return {'icon': Icons.coffee_rounded, 'color': const Color(0xFFf56565)};
       case 'BREAK_END': return {'icon': Icons.play_arrow_rounded, 'color': const Color(0xFF4fc1ff)};
       case 'EDIT_BREAK': return {'icon': Icons.edit_calendar_rounded, 'color': const Color(0xFFb5cea8)};
       case 'END_DAY': return {'icon': Icons.flag_rounded, 'color': const Color(0xFFed8936)};
