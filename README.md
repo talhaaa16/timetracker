@@ -1,4 +1,4 @@
-# 🕒 Dev Timetracker
+# 🕒 Timetracker
 
 A modern, multi-platform productivity suite for developers. Track your shift, manage breaks, and visualize your work patterns across **Desktop** and **Mobile**.
 
