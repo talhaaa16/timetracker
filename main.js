@@ -5,6 +5,10 @@ if (require("electron-squirrel-startup")) {
 }
 
 const { app, BrowserWindow, ipcMain, autoUpdater } = require("electron");
+
+// Disable Hardware Acceleration to prevent GPU crashes on startup
+app.disableHardwareAcceleration();
+
 const path = require("path");
 
 let mainWindow;
