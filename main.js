@@ -8,6 +8,12 @@ const { app, BrowserWindow, ipcMain, autoUpdater } = require("electron");
 
 // Disable Hardware Acceleration to prevent GPU crashes on startup
 app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('disable-gpu-rasterization');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('disable-dev-shm-usage');
 
 const path = require("path");
 
