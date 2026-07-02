@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link
         href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap"
@@ -691,17 +691,23 @@
                             <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 15px; text-transform: uppercase;"><i class="fa-solid fa-clock-rotate-left"></i> Pending Requests</div>
                             <div style="font-size: 28px; font-weight: 700; color: #fff;">0</div>
                         </div>
-                        <div class="card" data-id="widget-leaves" style="padding: 20px; text-align: center; border-bottom: 3px solid #63b3ed; cursor: grab;">
+                        <div class="card" data-id="widget-leaves" style="padding: 20px; text-align: center; border-bottom: 3px solid #63b3ed; cursor: grab; position: relative;">
                             <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 15px; text-transform: uppercase;"><i class="fa-solid fa-umbrella-beach"></i> Team on Leave</div>
-                            <div style="font-size: 28px; font-weight: 700; color: #fff;">0</div>
+                            <div id="widget-leaves-content" style="font-size: 28px; font-weight: 700; color: #fff;">0</div>
                         </div>
                         <div class="card" data-id="widget-holidays" style="padding: 20px; text-align: center; border-bottom: 3px solid #68d391; cursor: grab;">
                             <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 15px; text-transform: uppercase;"><i class="fa-solid fa-calendar-check"></i> Upcoming Holidays</div>
-                            <div style="font-size: 14px; color: #fff; margin-top: 20px;">No upcoming holidays</div>
+                            <div id="widget-holidays-content" style="font-size: 14px; color: #fff; margin-top: 20px;">No upcoming holidays</div>
                         </div>
-                        <div class="card" data-id="widget-celebrations" style="padding: 20px; text-align: center; border-bottom: 3px solid #fc8181; cursor: grab;">
-                            <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 15px; text-transform: uppercase;"><i class="fa-solid fa-cake-candles"></i> Celebrations</div>
-                            <div style="font-size: 14px; color: #fff; margin-top: 20px;">No upcoming celebrations</div>
+                        <div class="card" data-id="widget-celebrations" style="padding: 20px; text-align: center; border-bottom: 3px solid #fc8181; cursor: grab; position: relative;">
+                            <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 15px;">
+                                <div style="color: var(--text-secondary); font-size: 13px; text-transform: uppercase; margin-right: 4px;"><i class="fa-solid fa-cake-candles"></i> Celebrations</div>
+                                <div style="display: flex; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
+                                    <input type="date" id="celebration-date-picker" style="background: transparent; border: none; color: var(--text-secondary); padding: 2px 5px; font-size: 11px; outline: none; cursor: pointer;">
+                                    <button onclick="filterCelebrationsByDate()" style="background: rgba(255,255,255,0.05); border: none; border-left: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 8px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'"><i class="fa-solid fa-search" style="font-size: 10px;"></i></button>
+                                </div>
+                            </div>
+                            <div id="widget-celebrations-content" style="font-size: 14px; color: #fff; margin-top: 20px;">No upcoming celebrations</div>
                         </div>
                     </div>
 
@@ -2076,11 +2082,12 @@
 
         window.mewurkWidgetData = {
             holidays: [], currentHoliday: 0,
-            celebrations: [], currentCelebration: 0
+            celebrations: [], allCelebrations: [], currentCelebration: 0,
+            leaves: [], currentLeave: 0
         };
 
         function renderHolidayWidget() {
-            const container = document.querySelector('[data-id="widget-holidays"] div:nth-child(2)');
+            const container = document.getElementById('widget-holidays-content');
             if (!container || window.mewurkWidgetData.holidays.length === 0) return;
             const hol = window.mewurkWidgetData.holidays[window.mewurkWidgetData.currentHoliday];
             const total = window.mewurkWidgetData.holidays.length;
@@ -2099,7 +2106,7 @@
         }
 
         function renderCelebrationWidget() {
-            const container = document.querySelector('[data-id="widget-celebrations"] div:nth-child(2)');
+            const container = document.getElementById('widget-celebrations-content');
             if (!container || window.mewurkWidgetData.celebrations.length === 0) return;
             const cel = window.mewurkWidgetData.celebrations[window.mewurkWidgetData.currentCelebration];
             const total = window.mewurkWidgetData.celebrations.length;
@@ -2135,7 +2142,72 @@
                 if (current > max) current = 0;
                 window.mewurkWidgetData.currentCelebration = current;
                 renderCelebrationWidget();
+            } else if (type === 'leaves') {
+                let current = window.mewurkWidgetData.currentLeave + dir;
+                let max = window.mewurkWidgetData.leaves.length - 1;
+                if (current < 0) current = max;
+                if (current > max) current = 0;
+                window.mewurkWidgetData.currentLeave = current;
+                renderLeaveWidget();
             }
+        }
+
+        function filterCelebrationsByDate() {
+            const dateStr = document.getElementById('celebration-date-picker').value;
+            if (!dateStr) return;
+            
+            // The API returns the ORIGINAL year (e.g. 2018-07-02), so we must only compare Month and Day (MM-DD)
+            const targetMonthDay = dateStr.substring(5, 10);
+            
+            const filtered = window.mewurkWidgetData.allCelebrations.filter(c => {
+                if (!c.date) return false;
+                const cMonthDay = c.date.substring(5, 10);
+                return cMonthDay === targetMonthDay;
+            });
+            
+            window.mewurkWidgetData.celebrations = filtered;
+            window.mewurkWidgetData.currentCelebration = 0;
+            
+            const container = document.getElementById('widget-celebrations-content');
+            if (filtered.length === 0) {
+                container.innerHTML = 'No celebrations';
+                container.style.marginTop = "20px";
+            } else {
+                renderCelebrationWidget();
+            }
+        }
+
+        function renderLeaveWidget() {
+            const container = document.getElementById('widget-leaves-content');
+            if (!container) return;
+            if (window.mewurkWidgetData.leaves.length === 0) {
+                const lContainer = document.getElementById('widget-leaves-content');
+                if (lContainer) {
+                    lContainer.innerHTML = '0';
+                    lContainer.style.fontSize = "28px";
+                    lContainer.style.fontWeight = "700";
+                }
+                container.style.marginTop = "0";
+                return;
+            }
+            const lv = window.mewurkWidgetData.leaves[window.mewurkWidgetData.currentLeave];
+            const total = window.mewurkWidgetData.leaves.length;
+            container.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 5px;">
+                    <div style="cursor: pointer; padding: 10px; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" onclick="navigateWidget('leaves', -1)"><i class="fa-solid fa-chevron-left"></i></div>
+                    <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #63b3ed, #3182ce); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: #fff; margin-bottom: 6px; box-shadow: 0 4px 10px rgba(99, 179, 237, 0.3);">
+                            ${lv.employeeName.trim().charAt(0)}
+                        </div>
+                        <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 2px;">${lv.employeeName.trim()}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);"><i class="fa-solid fa-umbrella-beach" style="margin-right: 4px; color: #63b3ed;"></i>On Leave</div>
+                    </div>
+                    <div style="cursor: pointer; padding: 10px; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" onclick="navigateWidget('leaves', 1)"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 8px;">${window.mewurkWidgetData.currentLeave + 1} of ${total}</div>
+            `;
+            container.style.fontSize = "14px";
+            container.style.fontWeight = "normal";
         }
 
         async function loadMewurkDashboardWidgets() {
@@ -2154,6 +2226,23 @@
                     }
                 }
 
+                // Fetch Leaves
+                const leaveRes = await fetchMewurkWithAuth('https://app.mewurk.com/api/v1/leaveservice/dashboard/leave/details?viewScope=AllEmployees', {
+                    method: 'GET',
+                    headers: { 'accept': 'application/json' }
+                });
+                if (leaveRes.ok) {
+                    const leaveData = await leaveRes.json();
+                    if (leaveData.isSuccess && leaveData.data) {
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const todaysLeaves = leaveData.data.filter(l => l.date && l.date.startsWith(todayStr));
+                        
+                        window.mewurkWidgetData.leaves = todaysLeaves;
+                        window.mewurkWidgetData.currentLeave = 0;
+                        renderLeaveWidget();
+                    }
+                }
+
                 // Fetch Celebrations
                 const celRes = await fetchMewurkWithAuth('https://app.mewurk.com/api/v1/employeeservice/dashboard/celebrations', {
                     method: 'GET',
@@ -2161,10 +2250,16 @@
                 });
                 if (celRes.ok) {
                     const celData = await celRes.json();
-                    if (celData.isSuccess && celData.data && celData.data.length > 0) {
-                        window.mewurkWidgetData.celebrations = celData.data;
-                        window.mewurkWidgetData.currentCelebration = 0;
-                        renderCelebrationWidget();
+                    if (celData.isSuccess && celData.data) {
+                        window.mewurkWidgetData.allCelebrations = celData.data;
+                        
+                        // Set picker to today and filter
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const picker = document.getElementById('celebration-date-picker');
+                        if (picker) {
+                            picker.value = todayStr;
+                        }
+                        filterCelebrationsByDate();
                     }
                 }
             } catch (error) {
