@@ -31,7 +31,7 @@ A modern Material 3 viewer to keep track of your activities on the go.
 *   **Date-Wise Filtering:** Navigate through your historical logs with a dedicated date picker and day-by-day navigation.
 *   **Visual Analytics:** 7-day activity trend charts and event distribution statistics (Bar charts/Distribution maps).
 *   **Calendar View:** Full month overview with event markers and density indicators.
-*   **Real-time Sync:** Powered by Firebase to ensure your desktop logs are visible on your mobile device instantly.
+*   **Real-time Sync:** Powered by MongoDB to ensure your desktop logs are visible on your mobile device instantly.
 
 ---
 
@@ -58,7 +58,7 @@ A modern Material 3 viewer to keep track of your activities on the go.
 
 ## 🛠️ Built With
 *   **Desktop:** Electron.js, SQLite, HTML5, CSS3 (Vanilla), JavaScript.
-*   **Mobile:** Flutter, Dart, Firebase (Auth & Firestore), fl_chart.
+*   **Mobile:** Flutter, Dart, Mongodb (Auth & Firestore), fl_chart.
 
 ---
 Built by **Talha Shaikh**
