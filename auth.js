@@ -1,51 +1,4 @@
-const firebaseConfig = {
-    apiKey: window.env.FIREBASE_API_KEY,
-    authDomain: window.env.FIREBASE_AUTH_DOMAIN,
-    projectId: window.env.FIREBASE_PROJECT_ID,
-    storageBucket: window.env.FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: window.env.FIREBASE_MESSAGING_SENDER_ID,
-    appId: window.env.FIREBASE_APP_ID,
-    measurementId: window.env.FIREBASE_MEASUREMENT_ID
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-
 let isLoginMode = true;
-
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        console.log("Login detected for:", user.email);
-
-        let userData = {
-            uid: user.uid,
-            email: user.email,
-            firstName: "User",
-            lastName: ""
-        };
-
-        try {
-            const snap = await db.collection("users").doc(user.uid).get();
-            if (snap.exists) {
-                const data = snap.data();
-                userData.firstName = data.firstName || "Developer";
-                userData.lastName = data.lastName || "";
-            }
-        } catch (error) {
-            console.warn("Could not fetch profile, proceeding anyway:", error);
-        }
-
-        if (window.electronAPI && window.electronAPI.authSuccess) {
-            window.electronAPI.authSuccess(userData);
-        } else {
-            console.error("electronAPI not found! Check your preload.js");
-        }
-    }
-});
 
 window.toggleMode = function () {
     isLoginMode = !isLoginMode;
@@ -62,18 +15,20 @@ window.handleAuth = async function () {
         throw new Error("Please enter email and password");
     }
 
+    let res;
     if (isLoginMode) {
-        return auth.signInWithEmailAndPassword(emailVal, passVal);
+        res = await window.electronAPI.invoke("auth-login", emailVal, passVal);
     } else {
         const firstName = document.getElementById("fname").value;
         const lastName = document.getElementById("lname").value;
+        res = await window.electronAPI.invoke("auth-signup", emailVal, passVal, firstName, lastName);
+    }
 
-        const res = await auth.createUserWithEmailAndPassword(emailVal, passVal);
-        await db.collection("users").doc(res.user.uid).set({
-            firstName: firstName,
-            lastName: lastName,
-            email: emailVal
-        });
-        return res;
+    if (!res.success) {
+        throw new Error(res.error || "Authentication failed");
+    }
+
+    if (window.electronAPI && window.electronAPI.authSuccess) {
+        window.electronAPI.authSuccess(res.userData);
     }
 };

@@ -91,6 +91,14 @@ app.whenReady().then(() => {
 
     ipcMain.handle("get-user-profile", () => currentUser);
 
+    ipcMain.handle("auth-login", async (_, email, password) => {
+        return await db.login(email, password);
+    });
+
+    ipcMain.handle("auth-signup", async (_, email, password, firstName, lastName) => {
+        return await db.signup(email, password, firstName, lastName);
+    });
+
     ipcMain.handle("log-event", async (_, name, details) => {
         if (!currentUser || !currentUser.uid) {
             console.warn(
