@@ -1,20 +1,22 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 const { app } = require("electron");
+const { MongoClient, ObjectId } = require("mongodb");
+const bcrypt = require("bcryptjs");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
-const admin = require("firebase-admin");
+let mongoClient = null;
+let mongoDb = null;
 
-const serviceAccount = require(
-  path.join(__dirname, "serviceAccountKey.json")
-);
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+if (process.env.MONGODB_CLUSTER_URL) {
+    mongoClient = new MongoClient(process.env.MONGODB_CLUSTER_URL);
+    mongoClient.connect()
+        .then(() => {
+            mongoDb = mongoClient.db("timetracker");
+            console.log("✔ Connected to MongoDB successfully");
+        })
+        .catch(err => console.error("❌ MongoDB connection failed:", err.message));
 }
-
-const firestore = admin.firestore();
 
 let dbPath;
 try {
@@ -41,6 +43,50 @@ db.exec(`
 `);
 
 module.exports = {
+  login: async (email, password) => {
+      if (!mongoDb) return { success: false, error: "MongoDB not connected" };
+      const user = await mongoDb.collection("users").findOne({ email });
+      if (!user) return { success: false, error: "User not found" };
+      
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) return { success: false, error: "Invalid password" };
+      
+      return {
+          success: true,
+          userData: {
+              uid: user._id.toString(),
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName
+          }
+      };
+  },
+
+  signup: async (email, password, firstName, lastName) => {
+      if (!mongoDb) return { success: false, error: "MongoDB not connected" };
+      
+      const existing = await mongoDb.collection("users").findOne({ email });
+      if (existing) return { success: false, error: "Email already exists" };
+      
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const result = await mongoDb.collection("users").insertOne({
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          createdAt: new Date()
+      });
+      
+      return {
+          success: true,
+          userData: {
+              uid: result.insertedId.toString(),
+              email,
+              firstName,
+              lastName
+          }
+      };
+  },
 
   addLog: async (name, details = "", uid = null) => {
     const isoTimestamp = new Date().toISOString();
@@ -50,24 +96,20 @@ module.exports = {
     );
     const info = stmt.run(name, details, isoTimestamp);
 
-    if (uid) {
+    if (uid && mongoDb) {
       try {
-        await firestore
-          .collection("users")
-          .doc(uid)
-          .collection("logs")
-          .add({
+        await mongoDb.collection("logs").insertOne({
+            uid: uid,
             event_name: name,
             details: details,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          });
-
-        console.log("✔ Log synced to Firestore");
+            timestamp: new Date()
+        });
+        console.log("✔ Log synced to MongoDB");
       } catch (err) {
-        console.error("❌ Firestore sync failed:", err.message);
+        console.error("❌ MongoDB sync failed:", err.message);
       }
     } else {
-      console.warn("⚠ No UID provided, Firestore sync skipped");
+      console.warn("⚠ No UID or MongoDB not connected, sync skipped");
     }
 
     return { id: info.lastInsertRowid, timestamp: isoTimestamp };
