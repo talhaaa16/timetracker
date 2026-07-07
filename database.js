@@ -31,6 +31,7 @@ db.pragma("journal_mode = WAL");
 db.exec(`
   CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uid TEXT,
     event_name TEXT,
     details TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -41,6 +42,13 @@ db.exec(`
     value TEXT
   );
 `);
+
+// Safely add uid column for existing users (will throw if it already exists, which is fine)
+try {
+  db.prepare("ALTER TABLE logs ADD COLUMN uid TEXT").run();
+} catch (e) {
+  // column exists
+}
 
 module.exports = {
   login: async (email, password) => {
@@ -92,9 +100,9 @@ module.exports = {
     const isoTimestamp = new Date().toISOString();
 
     const stmt = db.prepare(
-      "INSERT INTO logs (event_name, details, timestamp) VALUES (?, ?, ?)"
+      "INSERT INTO logs (uid, event_name, details, timestamp) VALUES (?, ?, ?, ?)"
     );
-    const info = stmt.run(name, details, isoTimestamp);
+    const info = stmt.run(uid, name, details, isoTimestamp);
 
     if (uid && mongoDb) {
       try {
@@ -115,10 +123,10 @@ module.exports = {
     return { id: info.lastInsertRowid, timestamp: isoTimestamp };
   },
 
-  getLogs: () => {
+  getLogs: (uid) => {
     return db
-      .prepare("SELECT * FROM logs ORDER BY id DESC LIMIT 100")
-      .all();
+      .prepare("SELECT * FROM logs WHERE uid = ? ORDER BY id DESC LIMIT 100")
+      .all(uid);
   },
 
   setSession: (key, val) => {
@@ -138,5 +146,9 @@ module.exports = {
     db.prepare("DELETE FROM logs").run();
     db.prepare("DELETE FROM session").run();
     db.prepare("VACUUM").run();
+  },
+
+  clearSession: () => {
+    db.prepare("DELETE FROM session").run();
   },
 };

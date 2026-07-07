@@ -17,6 +17,10 @@ app.commandLine.appendSwitch('disable-dev-shm-usage');
 
 const path = require("path");
 
+// Isolate local dev data from live app data
+if (!app.isPackaged) {
+    app.setPath('userData', path.join(app.getPath('appData'), app.getName() + '_dev'));
+}
 let mainWindow;
 let db;
 let currentUser = null;
@@ -54,6 +58,11 @@ ipcMain.on("auth-success", (_, userData) => {
 ipcMain.on("request-logout", () => {
     console.log("User logged out");
     currentUser = null;
+    
+    // Hard logout: clear session
+    if (db) {
+        db.clearSession();
+    }
 
     if (mainWindow) {
         mainWindow.loadFile("login.html");
@@ -114,7 +123,10 @@ app.whenReady().then(() => {
         return db.addLog(name, details, currentUser.uid);
     });
 
-    ipcMain.handle("get-logs", () => db.getLogs());
+    ipcMain.handle("get-logs", () => {
+        if (!currentUser || !currentUser.uid) return [];
+        return db.getLogs(currentUser.uid);
+    });
 
     ipcMain.handle("save-session", (_, key, val) =>
         db.setSession(key, val)
