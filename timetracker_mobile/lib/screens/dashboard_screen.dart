@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../models/log_model.dart';
 import '../widgets/glass_card.dart';
@@ -14,11 +15,46 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   DateTime selectedDate = DateTime.now();
+  List<LogModel> allLogs = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLogs();
+  }
+
+  Future<void> _fetchLogs() async {
+    setState(() => isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final uid = prefs.getString('uid');
+      if (uid == null) return;
+
+      final res = await http.get(Uri.parse('http://localhost:3000/logs/$uid'));
+      if (res.statusCode == 200) {
+        final List data = jsonDecode(res.body);
+        setState(() {
+          allLogs = data.map((json) {
+            // Need to create a mock doc-like object to use the existing LogModel.fromFirestore, or we can adapt from json.
+            // Since LogModel isn't updated yet, we will just parse the timestamp.
+            return LogModel(
+              id: json['_id'],
+              eventName: json['event_name'],
+              details: json['details'] ?? '',
+              timestamp: DateTime.parse(json['timestamp']),
+            );
+          }).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching logs: $e");
+    }
+    setState(() => isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -30,23 +66,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, size: 20),
-            onPressed: () => setState(() {}),
+            onPressed: _fetchLogs,
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('logs')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+      body: Builder(
+        builder: (context) {
+          if (isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final allLogs = snapshot.data!.docs.map((doc) => LogModel.fromFirestore(doc)).toList();
           final filteredLogs = allLogs.where((log) => _isSameDay(log.timestamp, selectedDate)).toList();
 
           // Calculate summary for selected day

@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+  
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+  
+  runApp(MyApp(isLoggedIn: token != null));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+  
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +25,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorScheme: ColorScheme.dark(
-          primary: const Color(0xFF667eea),
-          secondary: const Color(0xFF764ba2),
-          surface: const Color(0xFF1e223e),
-          background: const Color(0xFF0a0e27),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF667eea),
+          secondary: Color(0xFF764ba2),
+          surface: Color(0xFF1e223e),
+          background: Color(0xFF0a0e27),
           onBackground: Colors.white,
           onSurface: Colors.white,
         ),
@@ -53,9 +57,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: FirebaseAuth.instance.currentUser == null
-          ? const LoginPage()
-          : const MainScreen(),
+      home: isLoggedIn ? const MainScreen() : const LoginPage(),
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'main_screen.dart';
 
 class LoginPage extends StatefulWidget {
@@ -22,19 +24,33 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailCtrl.text.trim(),
-        password: passCtrl.text,
+      final response = await http.post(
+        Uri.parse('http://localhost:3000/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': emailCtrl.text.trim(),
+          'password': passCtrl.text,
+        }),
       );
 
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-        );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', data['token']);
+        await prefs.setString('uid', data['uid']);
+        
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+          );
+        }
+      } else {
+        final errorData = jsonDecode(response.body);
+        setState(() => error = errorData['error'] ?? 'Login failed');
       }
     } catch (e) {
-      setState(() => error = "Invalid email or password");
+      setState(() => error = "Network error or invalid server");
     }
 
     setState(() => loading = false);
